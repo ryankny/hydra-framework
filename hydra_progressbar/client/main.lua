@@ -12,6 +12,15 @@ Hydra.Progressbar = {}
 local isActive = false
 local activeCb = nil
 local activeOptions = nil
+local activeAnimId = nil
+local activePropEntity = nil
+local hasAnims = false
+
+-- Detect hydra_anims availability
+CreateThread(function()
+    Wait(1000)
+    hasAnims = pcall(function() return exports['hydra_anims'] end)
+end)
 
 --- Start a progress bar
 --- @param options table
@@ -44,40 +53,71 @@ function Hydra.Progressbar.Start(options, cb)
     local disable = options.disable or {}
     local duration = options.duration or 3000
 
-    -- Play animation
-    if options.anim and options.anim.dict then
-        RequestAnimDict(options.anim.dict)
-        local t = 0
-        while not HasAnimDictLoaded(options.anim.dict) and t < 2000 do
-            Wait(10)
-            t = t + 10
-        end
-        if HasAnimDictLoaded(options.anim.dict) then
-            TaskPlayAnim(ped, options.anim.dict, options.anim.clip or 'idle',
-                8.0, -8.0, -1, options.anim.flag or 49, 0, false, false, false)
-        end
-    end
-
-    -- Attach prop
+    -- Play animation and attach props via hydra_anims if available
     local propEntity = nil
-    if options.prop and options.prop.model then
-        local model = GetHashKey(options.prop.model)
-        RequestModel(model)
-        local t = 0
-        while not HasModelLoaded(model) and t < 2000 do
-            Wait(10)
-            t = t + 10
+    activeAnimId = nil
+    activePropEntity = nil
+
+    if hasAnims and options.anim and options.anim.dict then
+        local props = nil
+        if options.prop and options.prop.model then
+            props = { {
+                model = options.prop.model,
+                bone = options.prop.bone or 57005,
+                offset = options.prop.offset or vector3(0.0, 0.0, 0.0),
+                rotation = options.prop.rotation or vector3(0.0, 0.0, 0.0),
+            } }
         end
-        if HasModelLoaded(model) then
-            local pos = GetEntityCoords(ped)
-            propEntity = CreateObject(model, pos.x, pos.y, pos.z, true, true, true)
-            local bone = GetPedBoneIndex(ped, options.prop.bone or 57005)
-            local off = options.prop.offset or vector3(0.0, 0.0, 0.0)
-            local rot = options.prop.rotation or vector3(0.0, 0.0, 0.0)
-            AttachEntityToEntity(propEntity, ped, bone, off.x, off.y, off.z, rot.x, rot.y, rot.z, true, true, false, true, 1, true)
-            SetModelAsNoLongerNeeded(model)
+
+        local ok, animId = pcall(function()
+            return exports['hydra_anims']:Play(ped, {
+                dict = options.anim.dict,
+                anim = options.anim.clip or 'idle',
+                flag = options.anim.flag or 49,
+                duration = -1,
+                label = 'progressbar',
+                props = props,
+            })
+        end)
+        if ok and animId then
+            activeAnimId = animId
+        end
+    else
+        -- Fallback: direct native calls
+        if options.anim and options.anim.dict then
+            RequestAnimDict(options.anim.dict)
+            local t = 0
+            while not HasAnimDictLoaded(options.anim.dict) and t < 2000 do
+                Wait(10)
+                t = t + 10
+            end
+            if HasAnimDictLoaded(options.anim.dict) then
+                TaskPlayAnim(ped, options.anim.dict, options.anim.clip or 'idle',
+                    8.0, -8.0, -1, options.anim.flag or 49, 0, false, false, false)
+            end
+        end
+
+        -- Fallback prop attachment
+        if options.prop and options.prop.model then
+            local model = GetHashKey(options.prop.model)
+            RequestModel(model)
+            local t = 0
+            while not HasModelLoaded(model) and t < 2000 do
+                Wait(10)
+                t = t + 10
+            end
+            if HasModelLoaded(model) then
+                local pos = GetEntityCoords(ped)
+                propEntity = CreateObject(model, pos.x, pos.y, pos.z, true, true, true)
+                local bone = GetPedBoneIndex(ped, options.prop.bone or 57005)
+                local off = options.prop.offset or vector3(0.0, 0.0, 0.0)
+                local rot = options.prop.rotation or vector3(0.0, 0.0, 0.0)
+                AttachEntityToEntity(propEntity, ped, bone, off.x, off.y, off.z, rot.x, rot.y, rot.z, true, true, false, true, 1, true)
+                SetModelAsNoLongerNeeded(model)
+            end
         end
     end
+    activePropEntity = propEntity
 
     -- Send to NUI
     SendNUIMessage({
@@ -165,16 +205,22 @@ function Hydra.Progressbar._Finish(completed, propEntity)
     if not isActive then return end
     isActive = false
 
-    -- Stop animation
     local ped = PlayerPedId()
-    if activeOptions and activeOptions.anim then
+
+    -- Stop animation via hydra_anims or fallback
+    if hasAnims and activeAnimId then
+        pcall(function() exports['hydra_anims']:Stop(ped, activeAnimId) end)
+        activeAnimId = nil
+    elseif activeOptions and activeOptions.anim then
         StopAnimTask(ped, activeOptions.anim.dict, activeOptions.anim.clip or 'idle', 1.0)
     end
 
-    -- Remove prop
-    if propEntity and DoesEntityExist(propEntity) then
-        DeleteEntity(propEntity)
+    -- Remove prop (only for fallback path; hydra_anims handles its own props)
+    local prop = propEntity or activePropEntity
+    if prop and not hasAnims and DoesEntityExist(prop) then
+        DeleteEntity(prop)
     end
+    activePropEntity = nil
 
     -- Hide NUI
     SendNUIMessage({

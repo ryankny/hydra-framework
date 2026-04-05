@@ -170,9 +170,14 @@ AddEventHandler('hydra:death:respawn', function(data)
 
     local coords = data.coords
 
-    -- Screen fade
+    -- Screen fade (use hydra_camera if available, fallback to native)
     if cfg.effects.screen_fade then
-        DoScreenFadeOut(500)
+        local camOk = pcall(function()
+            exports['hydra_camera']:FadeOut(500)
+        end)
+        if not camOk then
+            DoScreenFadeOut(500)
+        end
         Wait(600)
     end
 
@@ -208,7 +213,12 @@ AddEventHandler('hydra:death:respawn', function(data)
     ClearPedTasks(ped)
 
     if cfg.effects.screen_fade then
-        DoScreenFadeIn(1000)
+        local camOk = pcall(function()
+            exports['hydra_camera']:FadeIn(1000)
+        end)
+        if not camOk then
+            DoScreenFadeIn(1000)
+        end
     end
 
     TriggerEvent('hydra:death:onRespawn')

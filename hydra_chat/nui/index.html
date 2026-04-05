@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hydra Chat</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/chat.css">
+</head>
+<body>
+    <div id="chat-root">
+        <div id="chat-container">
+            <div id="chat-messages"></div>
+            <div id="chat-input-area" class="hidden">
+                <div id="chat-channel-tag"></div>
+                <input type="text" id="chat-input" placeholder="Type a message..." maxlength="256" autocomplete="off" spellcheck="false">
+            </div>
+            <div id="chat-suggestions" class="hidden"></div>
+        </div>
+    </div>
+    <script src="js/chat.js"></script>
+</body>
+</html>

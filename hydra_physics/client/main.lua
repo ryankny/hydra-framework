@@ -31,6 +31,19 @@ end
 -- SERVER OVERRIDE SUPPORT
 -- =============================================
 
+-- Admin: force unstick
+RegisterNetEvent('hydra:physics:forceUnstick')
+AddEventHandler('hydra:physics:forceUnstick', function()
+    if Hydra.Physics.ForceUnstick then
+        Hydra.Physics.ForceUnstick()
+        TriggerEvent('hydra:notify:show', {
+            type = 'success', title = 'Physics',
+            message = 'Vehicle unstuck by admin.',
+            duration = 3000,
+        })
+    end
+end)
+
 RegisterNetEvent('hydra:physics:override')
 AddEventHandler('hydra:physics:override', function(section, key, value)
     if type(section) ~= 'string' or type(key) ~= 'string' then return end
@@ -89,4 +102,29 @@ end)
 
 exports('OnForceCalculated', function(fn)
     if Hydra.Physics.OnForceCalculated then Hydra.Physics.OnForceCalculated(fn) end
+end)
+
+-- Dynamics API (rollover, aquaplaning, bogging)
+exports('GetAquaplaneLevel', function()
+    if Hydra.Physics.GetAquaplaneLevel then return Hydra.Physics.GetAquaplaneLevel() end
+    return 0.0
+end)
+
+exports('GetSinkDepth', function()
+    if Hydra.Physics.GetSinkDepth then return Hydra.Physics.GetSinkDepth() end
+    return 0.0
+end)
+
+exports('IsStuck', function()
+    if Hydra.Physics.IsStuck then return Hydra.Physics.IsStuck() end
+    return false
+end)
+
+exports('GetEscapeProgress', function()
+    if Hydra.Physics.GetEscapeProgress then return Hydra.Physics.GetEscapeProgress() end
+    return 0.0
+end)
+
+exports('ForceUnstick', function()
+    if Hydra.Physics.ForceUnstick then Hydra.Physics.ForceUnstick() end
 end)

@@ -302,6 +302,241 @@ HydraPhysicsConfig = {
     },
 
     -- =============================================
+    -- VEHICLE ROLLOVER
+    -- =============================================
+    -- Simulates realistic vehicle rollovers. GTA's default
+    -- anti-roll is extremely aggressive - vehicles almost never
+    -- flip. This reduces anti-roll force dynamically during
+    -- sharp turns, high-speed direction changes, and off-road
+    -- bumps, making SUVs and tall vehicles behave realistically.
+
+    rollover = {
+        enabled = true,
+
+        -- How aggressively roll is allowed (0.0 = stock GTA, 1.0 = very tippy)
+        intensity = 0.7,
+
+        -- Speed threshold (km/h) to begin roll calculations
+        -- Below this, stock anti-roll is preserved for low-speed stability
+        min_speed = 25.0,
+
+        -- Maximum anti-roll reduction factor (0.0 = full removal, 1.0 = no change)
+        -- Lower values = vehicles can roll more easily
+        min_arb_factor = 0.15,
+
+        -- Lateral G-force threshold to trigger roll vulnerability
+        -- Higher = only extreme turns cause roll risk
+        lateral_g_threshold = 0.4,
+
+        -- Per-class roll susceptibility (higher = tips easier)
+        -- Vehicles with high center of gravity should tip more
+        class_multipliers = {
+            [0]  = 0.6,    -- Compacts: low CoG, stable
+            [1]  = 0.7,    -- Sedans: moderate
+            [2]  = 1.3,    -- SUVs: high CoG, roll-prone
+            [3]  = 0.5,    -- Coupes: low, stable
+            [4]  = 0.8,    -- Muscle: moderate-high
+            [5]  = 0.7,    -- Sports Classics
+            [6]  = 0.4,    -- Sports: very low CoG
+            [7]  = 0.3,    -- Super: ground-hugging
+            [8]  = 1.5,    -- Motorcycles: highside potential
+            [9]  = 1.1,    -- Off-Road: tall, moderate roll
+            [10] = 1.4,    -- Industrial: heavy, top-heavy
+            [11] = 1.2,    -- Utility: vans, trucks
+            [12] = 1.3,    -- Vans: tall, boxy
+            [17] = 1.0,    -- Service
+            [18] = 0.8,    -- Emergency: tuned suspension
+            [19] = 0.9,    -- Military: heavy but wide
+            [20] = 1.5,    -- Commercial: trucks, very top-heavy
+        },
+
+        -- Uneven terrain roll multiplier (bumps/jumps amplify roll)
+        terrain_amplify = 1.3,
+
+        -- Recovery: how quickly ARB restores when driving straight
+        -- Lower = takes longer to stabilize after near-roll
+        recovery_rate = 0.06,
+
+        -- Tick rate (ms)
+        tick_rate = 50,
+    },
+
+    -- =============================================
+    -- AQUAPLANING / HYDROPLANING
+    -- =============================================
+    -- Vehicles lose traction on standing water during rain.
+    -- Effect scales with speed: faster = more aquaplaning.
+    -- Simulates the wedge of water lifting tires off the road.
+
+    aquaplaning = {
+        enabled = true,
+
+        -- Only active during these weather types
+        weather_types = {
+            'RAIN', 'THUNDER',
+        },
+
+        -- Speed threshold (km/h) where aquaplaning begins
+        -- Real-world aquaplaning starts ~80km/h on worn tires
+        onset_speed = 60.0,
+
+        -- Speed at which aquaplaning reaches maximum effect
+        full_speed = 120.0,
+
+        -- Maximum traction loss at full aquaplaning (0.0-1.0)
+        -- 0.5 = lose 50% of grip at full_speed in rain
+        max_traction_loss = 0.45,
+
+        -- Steering responsiveness reduction during aquaplaning (0.0-1.0)
+        -- Simulates the steering becoming "floaty"
+        steering_loss = 0.35,
+
+        -- Random directional pull during aquaplaning
+        -- Simulates uneven water hitting tires, causing drift
+        drift_pull = {
+            enabled = true,
+            intensity = 0.4,      -- How strong the random pull is
+            change_rate = 2000,   -- How often pull direction changes (ms)
+        },
+
+        -- Braking distance increase during aquaplaning (multiplier)
+        brake_reduction = 0.40,
+
+        -- Per-class resistance to aquaplaning (higher = more resistant)
+        -- Wide tires and heavy vehicles aquaplane less
+        class_resistance = {
+            [2]  = 1.2,    -- SUVs: heavier, more ground pressure
+            [7]  = 0.7,    -- Super: wide slicks, low profile
+            [8]  = 0.6,    -- Motorcycles: very vulnerable
+            [9]  = 1.4,    -- Off-Road: aggressive treads
+            [10] = 1.5,    -- Industrial: massive tires
+            [22] = 0.5,    -- Open Wheel: slick tires, worst in rain
+        },
+
+        -- Visual indicator: notify player when aquaplaning
+        show_warning = true,
+        warning_threshold = 0.4, -- Traction loss % to trigger warning
+
+        -- Tick rate (ms)
+        tick_rate = 100,
+    },
+
+    -- =============================================
+    -- MUD / DIRT BOGGING & SINKING
+    -- =============================================
+    -- Vehicles slow down, lose traction, and can get stuck
+    -- when driving on mud, dirt, and sand. Simulates wheel
+    -- sinking into soft ground with progressive resistance.
+    -- Heavier vehicles sink more, off-road vehicles resist.
+
+    bogging = {
+        enabled = true,
+
+        -- Surface types that cause bogging
+        -- Each surface has: traction_mult, resistance, sink_rate, max_sink
+        --   traction_mult: grip multiplier (stacks with surface_traction)
+        --   resistance: speed reduction force (higher = slower max speed)
+        --   sink_rate: how fast the vehicle sinks per second while stationary/slow
+        --   max_sink: maximum sink depth (visual + physics effect)
+        --   escape_difficulty: 0.0 (easy to escape) to 1.0 (nearly stuck)
+        surfaces = {
+            mud = {
+                traction_mult = 0.45,
+                resistance = 0.35,
+                sink_rate = 0.08,
+                max_sink = 0.25,
+                escape_difficulty = 0.7,
+            },
+            dirt = {
+                traction_mult = 0.70,
+                resistance = 0.15,
+                sink_rate = 0.03,
+                max_sink = 0.10,
+                escape_difficulty = 0.3,
+            },
+            sand = {
+                traction_mult = 0.50,
+                resistance = 0.30,
+                sink_rate = 0.06,
+                max_sink = 0.20,
+                escape_difficulty = 0.6,
+            },
+            grass = {
+                traction_mult = 0.75,
+                resistance = 0.08,
+                sink_rate = 0.01,
+                max_sink = 0.05,
+                escape_difficulty = 0.1,
+            },
+            forest = {
+                traction_mult = 0.55,
+                resistance = 0.25,
+                sink_rate = 0.05,
+                max_sink = 0.15,
+                escape_difficulty = 0.5,
+            },
+        },
+
+        -- Weather makes bogging worse (rain = softer ground)
+        weather_multipliers = {
+            RAIN     = 1.5,   -- 50% worse in rain
+            THUNDER  = 1.8,   -- 80% worse in storms
+        },
+
+        -- Speed below which sinking begins (km/h)
+        -- Vehicle must be slow/stopped to sink
+        sink_speed_threshold = 5.0,
+
+        -- Speed needed to escape (km/h) - above this, sinking stops
+        escape_speed = 15.0,
+
+        -- Wheel spin effect: revving while stuck digs deeper
+        wheelspin_dig = {
+            enabled = true,
+            dig_rate = 0.04,       -- Extra sink per second while spinning
+            rpm_threshold = 0.6,   -- RPM % to trigger digging
+        },
+
+        -- Per-class bogging resistance (higher = less affected)
+        -- Off-road vehicles have aggressive treads, wider stance
+        class_resistance = {
+            [2]  = 1.1,    -- SUVs: moderate off-road ability
+            [7]  = 0.6,    -- Super: low clearance, terrible off-road
+            [8]  = 0.8,    -- Motorcycles: light but narrow
+            [9]  = 1.8,    -- Off-Road: built for this
+            [10] = 1.3,    -- Industrial: heavy but capable
+            [13] = 0.5,    -- Cycles: very light, sinks in
+            [19] = 1.5,    -- Military: wide tracks, heavy duty
+            [22] = 0.3,    -- Open Wheel: impossible off-road
+        },
+
+        -- Vehicle weight factor: heavier = sinks faster
+        -- Uses vehicle handling mass value
+        weight_factor = 0.3,  -- How much mass influences sink rate (0.0-1.0)
+
+        -- Stuck state: when sink reaches max, vehicle is "stuck"
+        stuck = {
+            -- Force needed to break free (holding throttle)
+            escape_time = 3.0,          -- Seconds of full throttle to escape
+            escape_traction_boost = 1.5, -- Temporary traction boost while escaping
+
+            -- Rocking mechanic: alternating forward/reverse helps escape
+            rocking = {
+                enabled = true,
+                boost_per_rock = 0.15,  -- Each rock adds this to escape progress
+                rock_window = 2000,     -- ms window to detect a "rock" (direction change)
+            },
+        },
+
+        -- Visual feedback
+        show_stuck_warning = true,
+        show_sinking_indicator = true,
+
+        -- Tick rate (ms)
+        tick_rate = 100,
+    },
+
+    -- =============================================
     -- RAGDOLL PHYSICS
     -- =============================================
     -- Controls when and how peds (player + NPC) ragdoll.

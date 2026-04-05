@@ -22,6 +22,7 @@ server_scripts {
 client_scripts {
     'config/physics.lua',
     'client/handling.lua',
+    'client/dynamics.lua',
     'client/ragdoll.lua',
     'client/impact.lua',
     'client/main.lua',

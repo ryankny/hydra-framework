@@ -1,0 +1,28 @@
+fx_version 'cerulean'
+game 'gta5'
+
+name 'hydra_physics'
+description 'Hydra Framework - Hyper-Realistic Physics'
+author 'Hydra Framework'
+version '1.0.0'
+
+dependencies {
+    'hydra_core',
+}
+
+shared_scripts {
+    '@hydra_core/shared/utils.lua',
+}
+
+server_scripts {
+    'config/physics.lua',
+    'server/main.lua',
+}
+
+client_scripts {
+    'config/physics.lua',
+    'client/handling.lua',
+    'client/ragdoll.lua',
+    'client/impact.lua',
+    'client/main.lua',
+}

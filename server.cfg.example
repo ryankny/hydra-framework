@@ -65,6 +65,11 @@ ensure hydra_hud
 # Hydra Identity (character creation & selection)
 ensure hydra_identity
 
+# Hydra Interaction Modules
+ensure hydra_progressbar
+ensure hydra_input
+ensure hydra_context
+
 # ---- Your Hydra Scripts Below ----
 # ensure hydra_inventory
 # ensure hydra_vehicles

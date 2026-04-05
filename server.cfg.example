@@ -87,6 +87,9 @@ ensure hydra_status
 ensure hydra_death
 ensure hydra_emotes
 
+# Hydra World Management (population, law, scenarios, environment)
+ensure hydra_world
+
 # Hydra Door Locks
 ensure hydra_doorlock
 

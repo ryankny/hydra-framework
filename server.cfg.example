@@ -70,6 +70,9 @@ ensure hydra_progressbar
 ensure hydra_input
 ensure hydra_context
 
+# Hydra Weather & Time Sync
+ensure hydra_weather
+
 # ---- Your Hydra Scripts Below ----
 # ensure hydra_inventory
 # ensure hydra_vehicles

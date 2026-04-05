@@ -184,6 +184,71 @@ HydraPhysicsConfig = {
                 brake_force = 0.70,
             },
 
+            -- Industrial: heavy, slow response, strong brakes
+            [10] = {
+                traction_curve_max = 0.68,
+                traction_curve_min = 0.55,
+                suspension_force = 2.8,
+                suspension_comp_damp = 0.8,
+                suspension_rebound_damp = 0.9,
+                brake_force = 0.80,
+                brake_bias_front = 0.55,
+                anti_rollbar_force = 0.50,
+                drive_inertia = 1.15,
+            },
+
+            -- Utility: work trucks, moderate handling
+            [11] = {
+                traction_curve_max = 0.72,
+                suspension_force = 1.8,
+                suspension_comp_damp = 0.9,
+                brake_force = 0.75,
+                anti_rollbar_force = 0.55,
+                drive_inertia = 1.05,
+            },
+
+            -- Vans: heavy, boxy, body roll
+            [12] = {
+                traction_curve_max = 0.70,
+                traction_curve_min = 0.58,
+                suspension_force = 1.7,
+                suspension_comp_damp = 0.85,
+                suspension_rebound_damp = 1.0,
+                brake_force = 0.72,
+                brake_bias_front = 0.58,
+                anti_rollbar_force = 0.50,
+                drive_inertia = 1.08,
+            },
+
+            -- Cycles: human-powered, minimal physics override
+            [13] = {
+                traction_curve_max = 0.80,
+                brake_force = 0.60,
+                anti_rollbar_force = 0.0,
+            },
+
+            -- Boats: water handling (minimal land-based effect)
+            [14] = {
+                traction_curve_max = 0.50,
+                suspension_force = 1.0,
+            },
+
+            -- Helicopters: no ground handling relevance
+            [15] = {},
+
+            -- Planes: no ground handling relevance
+            [16] = {},
+
+            -- Service: buses, taxis, moderate handling
+            [17] = {
+                traction_curve_max = 0.75,
+                suspension_force = 1.8,
+                suspension_comp_damp = 1.0,
+                brake_force = 0.78,
+                anti_rollbar_force = 0.60,
+                drive_inertia = 1.05,
+            },
+
             -- Emergency: tuned for pursuit, stiffer than stock
             [18] = {
                 traction_curve_max = 0.88,
@@ -192,6 +257,35 @@ HydraPhysicsConfig = {
                 brake_force = 0.92,
                 anti_rollbar_force = 0.88,
             },
+
+            -- Military: heavy, wide, stable at speed
+            [19] = {
+                traction_curve_max = 0.74,
+                traction_curve_min = 0.62,
+                suspension_force = 3.0,
+                suspension_comp_damp = 1.0,
+                suspension_rebound_damp = 1.1,
+                suspension_raise = 0.03,
+                brake_force = 0.85,
+                anti_rollbar_force = 0.70,
+                drive_inertia = 1.20,
+            },
+
+            -- Commercial: big rigs, trailers, very heavy
+            [20] = {
+                traction_curve_max = 0.65,
+                traction_curve_min = 0.50,
+                suspension_force = 3.2,
+                suspension_comp_damp = 0.7,
+                suspension_rebound_damp = 0.8,
+                brake_force = 0.70,
+                brake_bias_front = 0.52,
+                anti_rollbar_force = 0.45,
+                drive_inertia = 1.25,
+            },
+
+            -- Trains: no handling override
+            [21] = {},
 
             -- Open Wheel: F1-style extreme grip and downforce
             [22] = {
@@ -330,6 +424,8 @@ HydraPhysicsConfig = {
 
         -- Per-class roll susceptibility (higher = tips easier)
         -- Vehicles with high center of gravity should tip more
+        -- All 23 GTA vehicle classes (0-22) covered.
+        -- Custom vehicles inherit their vehicles.meta class automatically.
         class_multipliers = {
             [0]  = 0.6,    -- Compacts: low CoG, stable
             [1]  = 0.7,    -- Sedans: moderate
@@ -344,10 +440,16 @@ HydraPhysicsConfig = {
             [10] = 1.4,    -- Industrial: heavy, top-heavy
             [11] = 1.2,    -- Utility: vans, trucks
             [12] = 1.3,    -- Vans: tall, boxy
-            [17] = 1.0,    -- Service
+            [13] = 2.0,    -- Cycles: very tippy, narrow wheelbase
+            [14] = 0.3,    -- Boats: N/A on water, low on land
+            [15] = 0.0,    -- Helicopters: no roll physics
+            [16] = 0.0,    -- Planes: no roll physics
+            [17] = 1.0,    -- Service: buses, moderate
             [18] = 0.8,    -- Emergency: tuned suspension
             [19] = 0.9,    -- Military: heavy but wide
             [20] = 1.5,    -- Commercial: trucks, very top-heavy
+            [21] = 0.0,    -- Trains: no roll physics
+            [22] = 0.2,    -- Open Wheel: extremely low CoG
         },
 
         -- Uneven terrain roll multiplier (bumps/jumps amplify roll)
@@ -403,13 +505,31 @@ HydraPhysicsConfig = {
         brake_reduction = 0.40,
 
         -- Per-class resistance to aquaplaning (higher = more resistant)
-        -- Wide tires and heavy vehicles aquaplane less
+        -- Wide tires and heavy vehicles aquaplane less.
+        -- All 23 classes covered - custom vehicles auto-inherit.
         class_resistance = {
+            [0]  = 0.9,    -- Compacts: narrow tires, light
+            [1]  = 1.0,    -- Sedans: average
             [2]  = 1.2,    -- SUVs: heavier, more ground pressure
+            [3]  = 0.9,    -- Coupes: sporty tires, light
+            [4]  = 1.0,    -- Muscle: wide rears, moderate
+            [5]  = 0.8,    -- Sports Classics: old tire tech
+            [6]  = 0.85,   -- Sports: wide but low-profile
             [7]  = 0.7,    -- Super: wide slicks, low profile
             [8]  = 0.6,    -- Motorcycles: very vulnerable
             [9]  = 1.4,    -- Off-Road: aggressive treads
-            [10] = 1.5,    -- Industrial: massive tires
+            [10] = 1.5,    -- Industrial: massive tires, heavy
+            [11] = 1.2,    -- Utility: chunky tires
+            [12] = 1.1,    -- Vans: heavy, wide contact patch
+            [13] = 0.5,    -- Cycles: thin tires, worst
+            [14] = 0.0,    -- Boats: N/A
+            [15] = 0.0,    -- Helicopters: N/A
+            [16] = 0.0,    -- Planes: N/A
+            [17] = 1.1,    -- Service: commercial tires
+            [18] = 1.1,    -- Emergency: performance all-season
+            [19] = 1.5,    -- Military: heavy-duty treads
+            [20] = 1.6,    -- Commercial: massive contact patch
+            [21] = 0.0,    -- Trains: N/A
             [22] = 0.5,    -- Open Wheel: slick tires, worst in rain
         },
 
@@ -498,15 +618,31 @@ HydraPhysicsConfig = {
         },
 
         -- Per-class bogging resistance (higher = less affected)
-        -- Off-road vehicles have aggressive treads, wider stance
+        -- Off-road vehicles have aggressive treads, wider stance.
+        -- All 23 classes covered - custom vehicles auto-inherit.
         class_resistance = {
+            [0]  = 0.8,    -- Compacts: low clearance, road tires
+            [1]  = 0.85,   -- Sedans: road tires, moderate weight
             [2]  = 1.1,    -- SUVs: moderate off-road ability
-            [7]  = 0.6,    -- Super: low clearance, terrible off-road
+            [3]  = 0.7,    -- Coupes: low clearance, sport tires
+            [4]  = 0.9,    -- Muscle: high torque helps, road tires
+            [5]  = 0.7,    -- Sports Classics: old, low, fragile
+            [6]  = 0.6,    -- Sports: low clearance, terrible off-road
+            [7]  = 0.5,    -- Super: ground-scraping, very bad
             [8]  = 0.8,    -- Motorcycles: light but narrow
             [9]  = 1.8,    -- Off-Road: built for this
-            [10] = 1.3,    -- Industrial: heavy but capable
+            [10] = 1.3,    -- Industrial: heavy, large tires
+            [11] = 1.2,    -- Utility: work vehicles, decent
+            [12] = 1.0,    -- Vans: heavy, average tires
             [13] = 0.5,    -- Cycles: very light, sinks in
+            [14] = 0.0,    -- Boats: N/A
+            [15] = 0.0,    -- Helicopters: N/A
+            [16] = 0.0,    -- Planes: N/A
+            [17] = 0.9,    -- Service: buses/taxis, road-only
+            [18] = 1.1,    -- Emergency: reinforced, moderate off-road
             [19] = 1.5,    -- Military: wide tracks, heavy duty
+            [20] = 1.2,    -- Commercial: heavy, large tires
+            [21] = 0.0,    -- Trains: N/A
             [22] = 0.3,    -- Open Wheel: impossible off-road
         },
 

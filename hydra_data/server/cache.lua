@@ -127,20 +127,21 @@ function Hydra.Data.Cache.Cleanup()
     end
 end
 
---- Evict least recently used entry
+--- Evict least recently used entries (batch evict 10% to amortize O(n) scan)
 function Hydra.Data.Cache._EvictLRU()
-    local oldestKey = nil
-    local oldestTime = math.huge
+    local evictCount = math.max(1, math.floor(maxEntries * 0.1))
+    local entries = {}
 
     for key, entry in pairs(cache) do
-        if entry.lastAccess < oldestTime then
-            oldestTime = entry.lastAccess
-            oldestKey = key
-        end
+        entries[#entries + 1] = { key = key, lastAccess = entry.lastAccess }
     end
 
-    if oldestKey then
-        cache[oldestKey] = nil
+    table.sort(entries, function(a, b)
+        return a.lastAccess < b.lastAccess
+    end)
+
+    for i = 1, math.min(evictCount, #entries) do
+        cache[entries[i].key] = nil
         cacheSize = cacheSize - 1
     end
 end
@@ -157,3 +158,19 @@ function Hydra.Data.Cache.GetStats()
             and math.floor((cacheHits / (cacheHits + cacheMisses)) * 100) or 0,
     }
 end
+
+--- Check if a key exists and is not expired
+--- @param key string
+--- @return boolean
+function Hydra.Data.Cache.Has(key)
+    local entry = cache[key]
+    if not entry then return false end
+    if entry.expires > 0 and os.time() > entry.expires then
+        cache[key] = nil
+        cacheSize = cacheSize - 1
+        return false
+    end
+    return true
+end
+
+exports('CacheStats', Hydra.Data.Cache.GetStats)

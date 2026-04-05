@@ -102,10 +102,10 @@ function Hydra.Chat.ProcessMessage(src, channel, message)
 
     -- Word filter
     if cfg.word_filter.enabled and #cfg.word_filter.words > 0 then
-        local filtered = false
+        local lowerMsg = message:lower()
         for _, word in ipairs(cfg.word_filter.words) do
-            local pattern = word:gsub('[%-%.%+%[%]%(%)%$%^%%%?%*]', '%%%1')
-            if message:lower():find(pattern:lower()) then
+            local pattern = word:lower():gsub('[%-%.%+%[%]%(%)%$%^%%%?%*]', '%%%1')
+            if lowerMsg:find(pattern) then
                 if cfg.word_filter.action == 'block' then
                     TriggerClientEvent('hydra:chat:systemMessage', src, {
                         message = 'Message blocked by word filter.',
@@ -113,9 +113,12 @@ function Hydra.Chat.ProcessMessage(src, channel, message)
                     })
                     return
                 else
-                    message = message:gsub('(?i)' .. pattern, string.rep('*', #word))
+                    -- Case-insensitive replace: build char-class pattern
+                    local ciPattern = word:gsub('[%-%.%+%[%]%(%)%$%^%%%?%*]', '%%%1'):gsub('%a', function(c)
+                        return '[' .. c:upper() .. c:lower() .. ']'
+                    end)
+                    message = message:gsub(ciPattern, string.rep('*', #word))
                 end
-                filtered = true
             end
         end
     end
@@ -462,11 +465,13 @@ exports('ChatRegisterCommand', function(...) Hydra.Chat.RegisterCommand(...) end
 exports('ChatMute', function(...) Hydra.Chat.Mute(...) end)
 exports('ChatUnmute', function(...) Hydra.Chat.Unmute(...) end)
 
--- Helper
-function GetPlayers()
-    local players = {}
-    for i = 0, GetNumPlayerIndices() - 1 do
-        players[#players + 1] = GetPlayerFromIndex(i)
+-- Use core GetPlayers if available, otherwise local fallback
+if not GetPlayers or type(GetPlayers) ~= 'function' then
+    function GetPlayers()
+        local players = {}
+        for i = 0, GetNumPlayerIndices() - 1 do
+            players[#players + 1] = GetPlayerFromIndex(i)
+        end
+        return players
     end
-    return players
 end

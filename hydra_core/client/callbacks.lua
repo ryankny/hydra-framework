@@ -45,11 +45,12 @@ function Hydra.ClientCallbacks.Trigger(name, cb, ...)
     -- Wait for response in a thread
     CreateThread(function()
         local timeout = GetGameTimer() + 10000
-        while not pendingCallbacks[callbackId] == nil and GetGameTimer() < timeout do
+        local pending = pendingCallbacks[callbackId]
+        while pending and not pending.done and GetGameTimer() < timeout do
             Wait(0)
+            pending = pendingCallbacks[callbackId]
         end
 
-        local pending = pendingCallbacks[callbackId]
         if pending and pending.done and pending.callback then
             pending.callback(table.unpack(pending.args))
         end

@@ -261,6 +261,25 @@ function Hydra.Doorlock.CanAccess(src, id)
         if not IsPlayerAceAllowed(src, perm) then return false, 'No permission' end
         return true
 
+    elseif lockType == 'gang' then
+        local player = Hydra.Players and Hydra.Players.GetPlayer(src)
+        if not player then return false, 'No player data' end
+
+        local gangs = lockData.gangs or {}
+        local playerGang = player.gang and player.gang.name or (player.metadata and player.metadata.gang)
+        if not playerGang then return false, 'No gang' end
+
+        local found = false
+        for _, gangName in ipairs(gangs) do
+            if playerGang == gangName then
+                found = true
+                break
+            end
+        end
+
+        if not found then return false, 'Wrong gang' end
+        return true
+
     elseif lockType == 'owner' then
         local identifier = lockData.identifier
         if not identifier then return false, 'No owner set' end
@@ -281,7 +300,8 @@ end
 RegisterNetEvent('hydra:doorlock:toggle')
 AddEventHandler('hydra:doorlock:toggle', function(doorId)
     local src = source
-    if type(doorId) ~= 'string' then return end
+    if not src or src <= 0 then return end
+    if type(doorId) ~= 'string' or #doorId > 64 then return end
 
     local door = doors[doorId]
     if not door then return end
@@ -307,7 +327,9 @@ end)
 RegisterNetEvent('hydra:doorlock:keypadSubmit')
 AddEventHandler('hydra:doorlock:keypadSubmit', function(doorId, code)
     local src = source
-    if type(doorId) ~= 'string' or type(code) ~= 'string' then return end
+    if not src or src <= 0 then return end
+    if type(doorId) ~= 'string' or #doorId > 64 then return end
+    if type(code) ~= 'string' or #code > 10 then return end
 
     local door = doors[doorId]
     if not door or door.lock_type ~= 'keypad' then return end

@@ -94,13 +94,20 @@ function Hydra.Events._HandleServerEvent(fullName, src, ...)
         end
     end
 
-    -- Payload size check
+    -- Payload size check (strings and tables)
     if Hydra.Security and Hydra.Config.Get('security.sanitize_inputs', true) then
+        local maxPayload = Hydra.Config.Get('security.max_event_payload', 65536)
         local args = { ... }
         for i, arg in ipairs(args) do
-            if type(arg) == 'string' and #arg > Hydra.Config.Get('security.max_event_payload', 65536) then
-                Hydra.Utils.Log('warn', 'Oversized payload from player %d on event %s', src, fullName)
+            if type(arg) == 'string' and #arg > maxPayload then
+                Hydra.Utils.Log('warn', 'Oversized string payload from player %d on event %s', src, fullName)
                 return
+            elseif type(arg) == 'table' then
+                local encoded = Hydra.Utils.JsonEncode(arg)
+                if encoded and #encoded > maxPayload then
+                    Hydra.Utils.Log('warn', 'Oversized table payload from player %d on event %s (%d bytes)', src, fullName, #encoded)
+                    return
+                end
             end
         end
     end

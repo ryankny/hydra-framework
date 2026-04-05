@@ -64,6 +64,10 @@ HydraDoorlockConfig = {
             label = 'Public Lock',
             description = 'Anyone can toggle',
         },
+        gang = {
+            label = 'Gang Lock',
+            description = 'Restricted to gang members',
+        },
         owner = {
             label = 'Owner Lock',
             description = 'Only the owner can toggle',

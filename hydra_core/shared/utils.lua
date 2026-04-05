@@ -78,12 +78,25 @@ end
 --- @return string
 function Hydra.Utils.Sanitize(str)
     if type(str) ~= 'string' then return '' end
-    -- Remove null bytes
-    str = string_gsub(str, '%z', '')
+    -- Remove null bytes and control characters
+    str = string_gsub(str, '[%z\x01-\x08\x0B\x0C\x0E-\x1F\x7F]', '')
     -- Escape common injection characters
     str = string_gsub(str, '[\'\"\\;]', function(c)
         return '\\' .. c
     end)
+    return str
+end
+
+--- Sanitize HTML-unsafe characters (for NUI display)
+--- @param str string
+--- @return string
+function Hydra.Utils.SanitizeHTML(str)
+    if type(str) ~= 'string' then return '' end
+    str = string_gsub(str, '&', '&amp;')
+    str = string_gsub(str, '<', '&lt;')
+    str = string_gsub(str, '>', '&gt;')
+    str = string_gsub(str, '"', '&quot;')
+    str = string_gsub(str, "'", '&#39;')
     return str
 end
 
@@ -178,18 +191,37 @@ function Hydra.Utils.Debounce(fn, delay)
     end
 end
 
---- Throttle a function (limit call frequency)
+--- Throttle a function (limit call frequency, ensures trailing call fires)
 --- @param fn function
 --- @param interval number milliseconds
 --- @return function
 function Hydra.Utils.Throttle(fn, interval)
     local lastCall = 0
+    local pendingArgs = nil
     local scheduled = false
     return function(...)
         local now = GetGameTimer()
         if now - lastCall >= interval then
             lastCall = now
+            pendingArgs = nil
             return fn(...)
+        else
+            -- Store latest args; schedule trailing call
+            pendingArgs = { ... }
+            if not scheduled then
+                scheduled = true
+                CreateThread(function()
+                    local remaining = interval - (GetGameTimer() - lastCall)
+                    if remaining > 0 then Wait(remaining) end
+                    scheduled = false
+                    if pendingArgs then
+                        lastCall = GetGameTimer()
+                        local args = pendingArgs
+                        pendingArgs = nil
+                        fn(table.unpack(args))
+                    end
+                end)
+            end
         end
     end
 end
@@ -214,6 +246,43 @@ function Hydra.Utils.FormatNumber(n)
         if k == 0 then break end
     end
     return formatted
+end
+
+--- Create a promise-like object for async operations
+--- @return table { resolve, reject, await }
+function Hydra.Utils.Promise()
+    local p = { _done = false, _success = nil, _value = nil }
+
+    function p.resolve(...)
+        if p._done then return end
+        p._done = true
+        p._success = true
+        p._value = { ... }
+    end
+
+    function p.reject(reason)
+        if p._done then return end
+        p._done = true
+        p._success = false
+        p._value = { reason }
+    end
+
+    --- Block current thread until resolved (use inside CreateThread)
+    --- @param timeout number|nil ms (default 10000)
+    --- @return any values from resolve, or nil on timeout/reject
+    function p.await(timeout)
+        timeout = timeout or 10000
+        local deadline = GetGameTimer() + timeout
+        while not p._done and GetGameTimer() < deadline do
+            Wait(0)
+        end
+        if p._done and p._success then
+            return table.unpack(p._value)
+        end
+        return nil
+    end
+
+    return p
 end
 
 --- Safe JSON encode with error handling

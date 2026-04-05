@@ -16,7 +16,8 @@ local bootStart = GetGameTimer()
 --- Boot sequence
 CreateThread(function()
     Hydra.Utils.Log('info', '========================================')
-    Hydra.Utils.Log('info', '  Hydra Framework - Starting...')
+    Hydra.Utils.Log('info', '  Hydra Framework v1.0.0')
+    Hydra.Utils.Log('info', '  High-Performance FiveM Framework')
     Hydra.Utils.Log('info', '========================================')
 
     -- Step 1: Load configuration
@@ -109,6 +110,18 @@ AddEventHandler('playerDropped', function(reason)
         Hydra.Security.CleanupPlayer(src)
     end
 end)
+
+--- Utility: Get all online player sources
+--- @return table array of player source numbers
+function Hydra.GetPlayers()
+    local players = {}
+    for i = 0, GetNumPlayerIndices() - 1 do
+        players[#players + 1] = GetPlayerFromIndex(i)
+    end
+    return players
+end
+
+exports('GetPlayers', Hydra.GetPlayers)
 
 --- Send config to client on request
 Hydra.Events.Register('requestConfig', function(src)

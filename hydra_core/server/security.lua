@@ -90,6 +90,17 @@ function Hydra.Security.CheckRateLimit(src, eventName, limit)
     local playerLimits = rateLimits[src]
 
     if not playerLimits[eventName] then
+        -- Cap tracked events per player to prevent memory growth
+        local tracked = 0
+        for _ in pairs(playerLimits) do tracked = tracked + 1 end
+        if tracked > 200 then
+            -- Prune stale entries older than 5s
+            for ev, data in pairs(playerLimits) do
+                if now - data.lastReset > 5000 then
+                    playerLimits[ev] = nil
+                end
+            end
+        end
         playerLimits[eventName] = { count = 1, lastReset = now }
         return true
     end
@@ -118,15 +129,21 @@ end
 
 --- Clean up rate limit data for disconnected players
 function Hydra.Security._CleanupRateLimits()
-    local players = GetPlayers()
     local activeSet = {}
-    for _, id in ipairs(players) do
-        activeSet[tonumber(id)] = true
+    for i = 0, GetNumPlayerIndices() - 1 do
+        local id = tonumber(GetPlayerFromIndex(i))
+        if id then activeSet[id] = true end
     end
 
     for src in pairs(rateLimits) do
         if not activeSet[src] then
             rateLimits[src] = nil
+        end
+    end
+
+    for src in pairs(playerTokens) do
+        if not activeSet[src] then
+            playerTokens[src] = nil
         end
     end
 end

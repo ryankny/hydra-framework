@@ -1,0 +1,301 @@
+/* ============================================
+   Hydra Notify - Notification Styles
+   ============================================ */
+
+:root {
+    --hydra-primary: #6C5CE7;
+    --hydra-secondary: #00CEC9;
+    --hydra-success: #00B894;
+    --hydra-warning: #FDCB6E;
+    --hydra-danger: #FF7675;
+    --hydra-info: #74B9FF;
+    --hydra-bg-card: #1E1E2E;
+    --hydra-bg-elevated: #252536;
+    --hydra-text-primary: #FFFFFF;
+    --hydra-text-secondary: #A0A0B8;
+    --hydra-text-muted: #6C6C80;
+    --hydra-border: #2A2A3C;
+    --hydra-font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: transparent;
+    font-family: var(--hydra-font);
+    user-select: none;
+    pointer-events: none;
+}
+
+/* ---- Container Positions ---- */
+.notify-container {
+    position: fixed;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 9999;
+    pointer-events: none;
+    max-height: 100vh;
+    overflow: hidden;
+}
+
+.notify-container.top-right {
+    top: 20px;
+    right: 20px;
+    align-items: flex-end;
+}
+
+.notify-container.top-left {
+    top: 20px;
+    left: 20px;
+    align-items: flex-start;
+}
+
+.notify-container.top-center {
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    align-items: center;
+}
+
+.notify-container.bottom-right {
+    bottom: 20px;
+    right: 20px;
+    align-items: flex-end;
+    flex-direction: column-reverse;
+}
+
+.notify-container.bottom-left {
+    bottom: 20px;
+    left: 20px;
+    align-items: flex-start;
+    flex-direction: column-reverse;
+}
+
+.notify-container.bottom-center {
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    align-items: center;
+    flex-direction: column-reverse;
+}
+
+/* ---- Toast Notification ---- */
+.hydra-toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 18px;
+    min-width: 320px;
+    max-width: 420px;
+    background: rgba(22, 22, 32, 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.03);
+    pointer-events: auto;
+    position: relative;
+    overflow: hidden;
+    will-change: transform, opacity;
+}
+
+/* Accent line on left */
+.hydra-toast::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    border-radius: 3px 0 0 3px;
+}
+
+.hydra-toast.type-info::before { background: var(--hydra-info); }
+.hydra-toast.type-success::before { background: var(--hydra-success); }
+.hydra-toast.type-warning::before { background: var(--hydra-warning); }
+.hydra-toast.type-error::before { background: var(--hydra-danger); }
+
+/* Icon */
+.hydra-toast-icon {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+}
+
+.hydra-toast.type-info .hydra-toast-icon { color: var(--hydra-info); }
+.hydra-toast.type-success .hydra-toast-icon { color: var(--hydra-success); }
+.hydra-toast.type-warning .hydra-toast-icon { color: var(--hydra-warning); }
+.hydra-toast.type-error .hydra-toast-icon { color: var(--hydra-danger); }
+
+/* Content */
+.hydra-toast-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.hydra-toast-title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--hydra-text-primary);
+    margin-bottom: 2px;
+    line-height: 1.3;
+}
+
+.hydra-toast-message {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--hydra-text-secondary);
+    line-height: 1.5;
+    word-wrap: break-word;
+}
+
+/* When there's no title, make message primary color */
+.hydra-toast-message.no-title {
+    font-size: 0.8125rem;
+    color: var(--hydra-text-primary);
+    font-weight: 500;
+}
+
+/* Progress bar at bottom */
+.hydra-toast-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    border-radius: 0 0 0 12px;
+    opacity: 0.7;
+}
+
+.hydra-toast.type-info .hydra-toast-progress { background: var(--hydra-info); }
+.hydra-toast.type-success .hydra-toast-progress { background: var(--hydra-success); }
+.hydra-toast.type-warning .hydra-toast-progress { background: var(--hydra-warning); }
+.hydra-toast.type-error .hydra-toast-progress { background: var(--hydra-danger); }
+
+/* ---- Animations ---- */
+@keyframes toast-slide-in-right {
+    from {
+        opacity: 0;
+        transform: translateX(80px) scale(0.92);
+    }
+    60% {
+        opacity: 1;
+        transform: translateX(-4px) scale(1.01);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+@keyframes toast-slide-out-right {
+    from {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(80px) scale(0.92);
+    }
+}
+
+@keyframes toast-slide-in-left {
+    from {
+        opacity: 0;
+        transform: translateX(-80px) scale(0.92);
+    }
+    60% {
+        opacity: 1;
+        transform: translateX(4px) scale(1.01);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+@keyframes toast-slide-out-left {
+    from {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(-80px) scale(0.92);
+    }
+}
+
+@keyframes toast-slide-in-down {
+    from {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.92);
+    }
+    60% {
+        opacity: 1;
+        transform: translateY(3px) scale(1.01);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes toast-slide-in-up {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.92);
+    }
+    60% {
+        opacity: 1;
+        transform: translateY(-3px) scale(1.01);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes toast-progress {
+    from { width: 100%; }
+    to { width: 0%; }
+}
+
+.toast-enter-right {
+    animation: toast-slide-in-right 400ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.toast-exit-right {
+    animation: toast-slide-out-right 250ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.toast-enter-left {
+    animation: toast-slide-in-left 400ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.toast-exit-left {
+    animation: toast-slide-out-left 250ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.toast-enter-down {
+    animation: toast-slide-in-down 400ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.toast-enter-up {
+    animation: toast-slide-in-up 400ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Hover effect */
+.hydra-toast:hover {
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.hydra-toast:hover .hydra-toast-progress {
+    animation-play-state: paused;
+}

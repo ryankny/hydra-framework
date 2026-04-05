@@ -50,6 +50,15 @@ ensure hydra_bridge
 # Hydra Player Management
 ensure hydra_players
 
+# Hydra UI Engine (required for HUD and notifications)
+ensure hydra_ui
+
+# Hydra Notifications
+ensure hydra_notify
+
+# Hydra HUD (player, vehicle, navigation)
+ensure hydra_hud
+
 # ---- Your Hydra Scripts Below ----
 # ensure hydra_inventory
 # ensure hydra_vehicles

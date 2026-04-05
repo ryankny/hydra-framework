@@ -210,11 +210,26 @@ function ESXBridge._WrapPlayer(source, data)
     end
 
     xPlayer.showNotification = function(msg, notifyType)
-        TriggerClientEvent('esx:showNotification', source, msg, notifyType)
+        -- Route through Hydra notification system
+        local Notify = Hydra.Use('notify')
+        if Notify then
+            local nType = 'info'
+            if notifyType == 'error' then nType = 'error'
+            elseif notifyType == 'success' then nType = 'success'
+            elseif notifyType == 'warning' then nType = 'warning' end
+            Notify.Send(source, { message = msg, type = nType })
+        else
+            TriggerClientEvent('esx:showNotification', source, msg, notifyType)
+        end
     end
 
     xPlayer.showHelpNotification = function(msg, thisFrame, beep, duration)
-        TriggerClientEvent('esx:showHelpNotification', source, msg, thisFrame, beep, duration)
+        local Notify = Hydra.Use('notify')
+        if Notify then
+            Notify.Send(source, { title = 'Help', message = msg, type = 'info', duration = duration or 7000 })
+        else
+            TriggerClientEvent('esx:showHelpNotification', source, msg, thisFrame, beep, duration)
+        end
     end
 
     return xPlayer

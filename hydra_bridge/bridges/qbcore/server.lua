@@ -69,9 +69,18 @@ function QBBridge.Init()
         DropPlayer(source, reason or 'Kicked by server')
     end
 
-    --- Notify
+    --- Notify (routes through Hydra notification system)
     QBCore.Functions.Notify = function(source, text, notifyType, duration)
-        TriggerClientEvent('QBCore:Notify', source, text, notifyType, duration)
+        local Notify = Hydra.Use('notify')
+        if Notify then
+            local nType = 'info'
+            if notifyType == 'error' or notifyType == 'danger' then nType = 'error'
+            elseif notifyType == 'success' then nType = 'success'
+            elseif notifyType == 'warning' then nType = 'warning' end
+            Notify.Send(source, { message = text, type = nType, duration = duration or 5000 })
+        else
+            TriggerClientEvent('QBCore:Notify', source, text, notifyType, duration)
+        end
     end
 
     -- Shared data (jobs, items, vehicles, etc.)
@@ -154,7 +163,16 @@ function QBBridge._WrapPlayer(source, data)
     end
 
     Player.Functions.Notify = function(text, notifyType, duration)
-        TriggerClientEvent('QBCore:Notify', source, text, notifyType, duration)
+        local Notify = Hydra.Use('notify')
+        if Notify then
+            local nType = 'info'
+            if notifyType == 'error' or notifyType == 'danger' then nType = 'error'
+            elseif notifyType == 'success' then nType = 'success'
+            elseif notifyType == 'warning' then nType = 'warning' end
+            Notify.Send(source, { message = text, type = nType, duration = duration or 5000 })
+        else
+            TriggerClientEvent('QBCore:Notify', source, text, notifyType, duration)
+        end
     end
 
     Player.Functions.SetMetaData = function(key, value)

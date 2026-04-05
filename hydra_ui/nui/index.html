@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hydra UI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/hydra.css">
+    <link rel="stylesheet" href="css/animations.css">
+</head>
+<body>
+    <!-- Module mount points - each UI module renders into its own container -->
+    <div id="hydra-root">
+        <!-- Notifications -->
+        <div id="hydra-notify" class="hydra-layer"></div>
+
+        <!-- HUD -->
+        <div id="hydra-hud" class="hydra-layer"></div>
+
+        <!-- Modals / Overlays -->
+        <div id="hydra-overlay" class="hydra-layer"></div>
+    </div>
+
+    <script src="js/core.js"></script>
+    <script src="js/animations.js"></script>
+    <script src="js/components.js"></script>
+</body>
+</html>

@@ -138,7 +138,14 @@ end
 RegisterCommand('seatbelt', function()
     if GetVehiclePedIsIn(PlayerPedId(), false) == 0 then return end
     seatbeltOn = not seatbeltOn
-    PlaySoundFrontend(-1, 'NAV_UP_DOWN', 'HUD_FRONTEND_DEFAULT_SOUNDSET', false)
+
+    -- Use hydra_audio if available, fallback to native
+    local audioOk = pcall(function()
+        exports['hydra_audio']:PlayFrontend('NAV_UP_DOWN', 'HUD_FRONTEND_DEFAULT_SOUNDSET', 'ui')
+    end)
+    if not audioOk then
+        PlaySoundFrontend(-1, 'NAV_UP_DOWN', 'HUD_FRONTEND_DEFAULT_SOUNDSET', false)
+    end
 
     TriggerEvent('hydra:notify:show', {
         type = 'info', title = 'Seatbelt',

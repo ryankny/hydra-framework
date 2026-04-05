@@ -3,7 +3,8 @@
 
     Animation and emote system with scenario support, prop
     emotes, cancel-on-move, and integration with hydra_context
-    for the emote menu. Developers can register emotes at runtime.
+    for the emote menu. Uses hydra_anims as animation backend.
+    Developers can register emotes at runtime.
 ]]
 
 Hydra = Hydra or {}
@@ -15,6 +16,14 @@ local cfg = HydraEmotesConfig
 local emotes = {}
 local isPlaying = false
 local currentEmote = nil
+local currentAnimId = nil
+local hasAnims = false
+
+-- Detect hydra_anims availability
+CreateThread(function()
+    Wait(1000)
+    hasAnims = pcall(function() return exports['hydra_anims'] end)
+end)
 
 -- Initialize from config
 for name, def in pairs(cfg.emotes) do
@@ -85,11 +94,18 @@ function Hydra.Emotes.Cancel(silent)
     if not isPlaying then return end
 
     local ped = PlayerPedId()
-    ClearPedTasks(ped)
-    ClearPedSecondaryTask(ped)
+
+    -- Use hydra_anims if available for clean stop
+    if hasAnims and currentAnimId then
+        pcall(function() exports['hydra_anims']:Stop(ped, currentAnimId) end)
+    else
+        ClearPedTasks(ped)
+        ClearPedSecondaryTask(ped)
+    end
 
     isPlaying = false
     currentEmote = nil
+    currentAnimId = nil
 
     if not silent then
         TriggerEvent('hydra:notify:show', {
@@ -119,7 +135,7 @@ function Hydra.Emotes.GetAll()
 end
 
 -- =============================================
--- ANIMATION / SCENARIO PLAYBACK
+-- ANIMATION / SCENARIO PLAYBACK (via hydra_anims)
 -- =============================================
 
 --- Play an animation emote
@@ -128,6 +144,40 @@ end
 function playAnimation(ped, emote)
     if not emote.dict or not emote.anim then return end
 
+    local flag = emote.flag or 49
+    local duration = emote.duration or -1
+
+    if emote.looping then
+        flag = emote.flag or 1
+        duration = -1
+    end
+
+    -- Use hydra_anims if available
+    if hasAnims then
+        local ok, animId = pcall(function()
+            return exports['hydra_anims']:Play(ped, {
+                dict = emote.dict,
+                anim = emote.anim,
+                flag = flag,
+                duration = duration,
+                label = currentEmote and currentEmote.name or 'emote',
+                props = emote.props,
+                onEnd = function(_, _, cancelled)
+                    if isPlaying and not emote.looping then
+                        isPlaying = false
+                        currentEmote = nil
+                        currentAnimId = nil
+                    end
+                end,
+            })
+        end)
+        if ok and animId then
+            currentAnimId = animId
+            return
+        end
+    end
+
+    -- Fallback: direct native calls
     RequestAnimDict(emote.dict)
     local t = 0
     while not HasAnimDictLoaded(emote.dict) and t < 3000 do
@@ -141,27 +191,16 @@ function playAnimation(ped, emote)
         return
     end
 
-    local flag = emote.flag or 49
-    local duration = emote.duration or -1
-
-    if emote.looping then
-        flag = emote.flag or 1
-        duration = -1
-    end
-
     TaskPlayAnim(ped, emote.dict, emote.anim, 8.0, -8.0, duration, flag, 0, false, false, false)
 
     -- Auto-end for non-looping
     if not emote.looping and emote.duration and emote.duration > 0 then
         CreateThread(function()
             Wait(emote.duration)
-            if isPlaying and currentEmote and currentEmote.name == emote.label then
-                -- only cancel if same emote still playing
-            end
-            -- Let it end naturally
             if isPlaying and not emote.looping then
                 isPlaying = false
                 currentEmote = nil
+                currentAnimId = nil
             end
         end)
     end
@@ -172,6 +211,28 @@ end
 --- @param emote table
 function playScenario(ped, emote)
     if not emote.scenario then return end
+
+    -- Use hydra_anims if available
+    if hasAnims then
+        local ok, animId = pcall(function()
+            return exports['hydra_anims']:PlayScenario(ped, emote.scenario, {
+                label = currentEmote and currentEmote.name or 'scenario',
+                onEnd = function()
+                    if isPlaying then
+                        isPlaying = false
+                        currentEmote = nil
+                        currentAnimId = nil
+                    end
+                end,
+            })
+        end)
+        if ok and animId then
+            currentAnimId = animId
+            return
+        end
+    end
+
+    -- Fallback
     TaskStartScenarioInPlace(ped, emote.scenario, 0, true)
 end
 

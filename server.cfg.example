@@ -62,6 +62,9 @@ ensure hydra_notify
 # Hydra HUD (player, vehicle, navigation)
 ensure hydra_hud
 
+# Hydra Identity (character creation & selection)
+ensure hydra_identity
+
 # ---- Your Hydra Scripts Below ----
 # ensure hydra_inventory
 # ensure hydra_vehicles

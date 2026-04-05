@@ -222,6 +222,23 @@ function Hydra.Players._SyncToClient(source, data)
     TriggerClientEvent('hydra:store:syncBulk', source, 'playerData', clientData)
 end
 
+--- Inject a fully-built player data object into the active players cache.
+--- Used by hydra_identity to load a character into the player system.
+--- @param source number
+--- @param playerData table
+function Hydra.Players._InjectPlayer(source, playerData)
+    playerData.source = source
+    activePlayers[source] = playerData
+    if playerData.identifier then
+        identifierMap[playerData.identifier] = source
+    end
+
+    -- Sync to client
+    Hydra.Players._SyncToClient(source, playerData)
+
+    Hydra.Utils.Log('debug', 'Injected player %d into active players cache', source)
+end
+
 --- Save all active players
 function Hydra.Players.SaveAll()
     local count = 0

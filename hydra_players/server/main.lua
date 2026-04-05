@@ -61,6 +61,11 @@ Hydra.Modules.Register('players', {
     end,
 
     onPlayerJoin = function(src)
+        -- If identity module is loaded, it handles character selection & loading
+        if Hydra.Modules.IsLoaded and Hydra.Modules.IsLoaded('identity') then
+            return
+        end
+
         -- Load player data when they fully join
         local data = Hydra.Players.Load(src)
         if data then

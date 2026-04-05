@@ -1,0 +1,203 @@
+/* ============================================
+   Hydra Framework - Core UI Stylesheet
+   ============================================
+   Base styles, CSS variables, typography, and
+   utility classes used across all Hydra UI modules.
+   ============================================ */
+
+/* ---- CSS Variables (Theme) ---- */
+:root {
+    /* Colors */
+    --hydra-primary: #6C5CE7;
+    --hydra-secondary: #00CEC9;
+    --hydra-success: #00B894;
+    --hydra-warning: #FDCB6E;
+    --hydra-danger: #FF7675;
+    --hydra-info: #74B9FF;
+
+    /* Backgrounds */
+    --hydra-bg-dark: #0F0F14;
+    --hydra-bg-primary: #161620;
+    --hydra-bg-card: #1E1E2E;
+    --hydra-bg-elevated: #252536;
+    --hydra-bg-hover: #2A2A3C;
+
+    /* Text */
+    --hydra-text-primary: #FFFFFF;
+    --hydra-text-secondary: #A0A0B8;
+    --hydra-text-muted: #6C6C80;
+    --hydra-text-accent: #6C5CE7;
+
+    /* Borders */
+    --hydra-border: #2A2A3C;
+    --hydra-border-focus: #6C5CE7;
+
+    /* Overlay */
+    --hydra-overlay: rgba(0, 0, 0, 0.6);
+
+    /* Typography */
+    --hydra-font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --hydra-font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+    /* Font sizes */
+    --hydra-text-xs: 0.625rem;
+    --hydra-text-sm: 0.75rem;
+    --hydra-text-base: 0.8125rem;
+    --hydra-text-md: 0.875rem;
+    --hydra-text-lg: 1rem;
+    --hydra-text-xl: 1.25rem;
+    --hydra-text-xxl: 1.5rem;
+    --hydra-text-hero: 2rem;
+
+    /* Spacing */
+    --hydra-space-xs: 4px;
+    --hydra-space-sm: 8px;
+    --hydra-space-md: 12px;
+    --hydra-space-lg: 16px;
+    --hydra-space-xl: 24px;
+    --hydra-space-xxl: 32px;
+
+    /* Radius */
+    --hydra-radius-sm: 4px;
+    --hydra-radius-md: 8px;
+    --hydra-radius-lg: 12px;
+    --hydra-radius-xl: 16px;
+    --hydra-radius-full: 9999px;
+
+    /* Shadows */
+    --hydra-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+    --hydra-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --hydra-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+    --hydra-shadow-glow: 0 0 20px rgba(108, 92, 231, 0.3);
+
+    /* Transitions */
+    --hydra-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --hydra-transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+    --hydra-transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+    --hydra-transition-spring: 350ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ---- Reset ---- */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: transparent;
+    font-family: var(--hydra-font);
+    font-size: 16px;
+    color: var(--hydra-text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    user-select: none;
+    pointer-events: none;
+}
+
+/* ---- Root ---- */
+#hydra-root {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.hydra-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+/* ---- Typography ---- */
+.hydra-text-xs { font-size: var(--hydra-text-xs); }
+.hydra-text-sm { font-size: var(--hydra-text-sm); }
+.hydra-text-base { font-size: var(--hydra-text-base); }
+.hydra-text-md { font-size: var(--hydra-text-md); }
+.hydra-text-lg { font-size: var(--hydra-text-lg); }
+.hydra-text-xl { font-size: var(--hydra-text-xl); }
+.hydra-text-xxl { font-size: var(--hydra-text-xxl); }
+.hydra-text-hero { font-size: var(--hydra-text-hero); }
+
+.hydra-text-bold { font-weight: 700; }
+.hydra-text-semibold { font-weight: 600; }
+.hydra-text-medium { font-weight: 500; }
+.hydra-text-light { font-weight: 300; }
+
+.hydra-text-muted { color: var(--hydra-text-muted); }
+.hydra-text-secondary { color: var(--hydra-text-secondary); }
+.hydra-text-accent { color: var(--hydra-text-accent); }
+
+.hydra-text-upper { text-transform: uppercase; letter-spacing: 0.08em; }
+.hydra-text-mono { font-family: var(--hydra-font-mono); }
+
+/* ---- Cards / Panels ---- */
+.hydra-card {
+    background: var(--hydra-bg-card);
+    border: 1px solid var(--hydra-border);
+    border-radius: var(--hydra-radius-lg);
+    box-shadow: var(--hydra-shadow-md);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+.hydra-card-glass {
+    background: rgba(30, 30, 46, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--hydra-radius-lg);
+    box-shadow: var(--hydra-shadow-md);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+/* ---- Progress Bars ---- */
+.hydra-progress {
+    width: 100%;
+    height: 4px;
+    background: var(--hydra-bg-elevated);
+    border-radius: var(--hydra-radius-full);
+    overflow: hidden;
+}
+
+.hydra-progress-bar {
+    height: 100%;
+    border-radius: var(--hydra-radius-full);
+    transition: width var(--hydra-transition-normal);
+}
+
+/* ---- Utility ---- */
+.hydra-flex { display: flex; }
+.hydra-flex-col { flex-direction: column; }
+.hydra-flex-center { align-items: center; justify-content: center; }
+.hydra-flex-between { justify-content: space-between; }
+.hydra-gap-xs { gap: var(--hydra-space-xs); }
+.hydra-gap-sm { gap: var(--hydra-space-sm); }
+.hydra-gap-md { gap: var(--hydra-space-md); }
+.hydra-gap-lg { gap: var(--hydra-space-lg); }
+
+.hydra-pointer { pointer-events: auto; cursor: pointer; }
+.hydra-no-pointer { pointer-events: none; }
+
+/* ---- Scrollbar ---- */
+::-webkit-scrollbar {
+    width: 4px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: var(--hydra-bg-elevated);
+    border-radius: var(--hydra-radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--hydra-text-muted);
+}

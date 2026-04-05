@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6C5CE7"/>
+      <stop offset="100%" stop-color="#00CEC9"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6C5CE7" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#00CEC9" stop-opacity="0.3"/>
+    </linearGradient>
+  </defs>
+  <!-- Outer ring -->
+  <circle cx="100" cy="100" r="90" stroke="url(#g2)" stroke-width="2" fill="none"/>
+  <!-- H letterform stylised as Hydra -->
+  <path d="M60 55 L60 145 M60 100 L140 100 M140 55 L140 145" stroke="url(#g1)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Accent dots -->
+  <circle cx="60" cy="55" r="5" fill="#6C5CE7"/>
+  <circle cx="140" cy="55" r="5" fill="#00CEC9"/>
+  <circle cx="60" cy="145" r="5" fill="#00CEC9"/>
+  <circle cx="140" cy="145" r="5" fill="#6C5CE7"/>
+</svg>

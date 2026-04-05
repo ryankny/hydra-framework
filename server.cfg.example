@@ -1,0 +1,85 @@
+# ============================================
+# Hydra Framework - Example server.cfg
+# ============================================
+# Copy the relevant sections into your server.cfg
+# ============================================
+
+# ---- Database Connection ----
+# Using oxmysql (required)
+set mysql_connection_string "mysql://user:password@localhost/hydra?charset=utf8mb4"
+
+# ---- Hydra Configuration (optional convars) ----
+# These override config/default.lua values
+
+# Language/locale
+#set hydra_locale "en"
+
+# Debug mode
+#set hydra_debug "false"
+#set hydra_log_level "info"
+
+# Security
+#set hydra_rate_limit "50"
+#set hydra_exploit_protection "true"
+
+# Maintenance mode
+#set hydra_maintenance "false"
+
+# Bridge mode override (auto-detected if not set)
+# Options: native, esx, qbcore, qbox, tmc
+#set hydra_bridge_mode ""
+
+# Database adapter
+#set hydra_db_adapter "mysql"
+
+# ---- Resource Start Order ----
+# IMPORTANT: Start resources in this exact order
+
+# Database
+ensure oxmysql
+
+# Hydra Loading Screen (loads before everything)
+ensure hydra_loadingscreen
+
+# Hydra Core (must be first)
+ensure hydra_core
+
+# Hydra Data Layer
+ensure hydra_data
+
+# Hydra Bridge (compatibility layer)
+ensure hydra_bridge
+
+# Hydra Player Management
+ensure hydra_players
+
+# Hydra UI Engine (required for HUD and notifications)
+ensure hydra_ui
+
+# Hydra Notifications
+ensure hydra_notify
+
+# Hydra HUD (player, vehicle, navigation)
+ensure hydra_hud
+
+# Hydra Identity (character creation & selection)
+ensure hydra_identity
+
+# ---- Your Hydra Scripts Below ----
+# ensure hydra_inventory
+# ensure hydra_vehicles
+# ensure hydra_housing
+# ensure my_custom_script
+
+# ---- ACE Permissions ----
+# Give yourself admin
+add_ace identifier.license:YOUR_LICENSE_HERE hydra.admin allow
+add_ace identifier.steam:YOUR_STEAM_HEX hydra.admin allow
+
+# Admin group
+add_ace group.admin hydra.admin.manage allow
+add_ace group.admin hydra.admin.players allow
+add_ace group.admin hydra.admin.kick allow
+add_ace group.admin hydra.admin.ban allow
+add_ace group.admin hydra.admin.maintenance allow
+add_ace group.admin command.hydra allow

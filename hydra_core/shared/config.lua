@@ -10,6 +10,7 @@ Hydra.Config = Hydra.Config or {}
 
 local configCache = {}
 local configLoaded = false
+local pathCache = {} -- Cache parsed dot-notation paths
 
 --- Deep merge two tables (b overrides a)
 --- @param a table
@@ -41,9 +42,14 @@ function Hydra.Config.Get(path, default)
         return default
     end
 
-    local keys = {}
-    for key in path:gmatch('[^%.]+') do
-        keys[#keys + 1] = key
+    -- Cache parsed path keys to avoid re-parsing on every call
+    local keys = pathCache[path]
+    if not keys then
+        keys = {}
+        for key in path:gmatch('[^%.]+') do
+            keys[#keys + 1] = key
+        end
+        pathCache[path] = keys
     end
 
     local current = configCache

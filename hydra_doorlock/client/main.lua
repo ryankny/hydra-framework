@@ -149,18 +149,24 @@ function applyAllDoorStates()
 end
 
 -- Re-apply door states periodically (doors can reset on stream-in)
+-- Uses adaptive tick rate: faster when near doors, slower when far
 CreateThread(function()
     while true do
-        Wait(3000)
         local playerPos = GetEntityCoords(PlayerPedId())
+        local nearestDist = 999.0
+
         for id, door in pairs(doors) do
             if door.model ~= 0 and door.locked then
                 local dist = #(playerPos - door.coords)
+                if dist < nearestDist then nearestDist = dist end
                 if dist < 50.0 then
                     applyDoorState(id)
                 end
             end
         end
+
+        -- Adaptive sleep: 1s if near doors, 5s if far
+        Wait(nearestDist < 60.0 and 1000 or 5000)
     end
 end)
 

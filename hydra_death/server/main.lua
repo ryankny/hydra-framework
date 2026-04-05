@@ -81,6 +81,7 @@ end
 RegisterNetEvent('hydra:death:died')
 AddEventHandler('hydra:death:died', function()
     local src = source
+    if not src or src <= 0 then return end
     if not Hydra.Death.IsDead(src) then
         Hydra.Death.SetDead(src)
     end
@@ -90,6 +91,7 @@ end)
 RegisterNetEvent('hydra:death:requestRespawn')
 AddEventHandler('hydra:death:requestRespawn', function()
     local src = source
+    if not src or src <= 0 then return end
     local state = deathState[src]
     if not state or not state.isDead then return end
 
@@ -105,10 +107,12 @@ end)
 RegisterNetEvent('hydra:death:emsRevive')
 AddEventHandler('hydra:death:emsRevive', function(targetId)
     local src = source
+    if not src or src <= 0 then return end
     if not cfg.allow_revive then return end
 
     local targetSrc = tonumber(targetId)
-    if not targetSrc or not Hydra.Death.IsDead(targetSrc) then return end
+    if not targetSrc or targetSrc <= 0 or targetSrc == src then return end
+    if not Hydra.Death.IsDead(targetSrc) then return end
 
     -- Verify source is EMS
     local player = Hydra.Players and Hydra.Players.GetPlayer(src)

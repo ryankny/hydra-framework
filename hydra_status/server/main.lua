@@ -11,6 +11,7 @@ Hydra.Status = {}
 
 local cfg = HydraStatusConfig
 local playerStatuses = {} -- [source] = { hunger = 100, thirst = 100, stress = 0, ... }
+local pendingSync = {}    -- [source] = true, debounce sync to next sync interval
 
 -- =============================================
 -- STATUS MANAGEMENT
@@ -35,7 +36,7 @@ function Hydra.Status.Init(src)
     end
 
     playerStatuses[src] = statuses
-    Hydra.Status.Sync(src)
+    Hydra.Status.Sync(src, true)
 end
 
 --- Get all statuses for a player
@@ -80,12 +81,18 @@ function Hydra.Status.Add(src, name, amount)
     Hydra.Status.Set(src, name, current + amount)
 end
 
---- Sync statuses to client
+--- Mark player for sync on next interval (debounced)
 --- @param src number
-function Hydra.Status.Sync(src)
-    local s = playerStatuses[src]
-    if not s then return end
-    TriggerClientEvent('hydra:status:sync', src, s)
+--- @param immediate boolean|nil force immediate sync
+function Hydra.Status.Sync(src, immediate)
+    if immediate then
+        local s = playerStatuses[src]
+        if not s then return end
+        TriggerClientEvent('hydra:status:sync', src, s)
+        pendingSync[src] = nil
+    else
+        pendingSync[src] = true
+    end
 end
 
 --- Save statuses to player metadata
@@ -138,12 +145,18 @@ CreateThread(function()
     end
 end)
 
--- Sync loop (separate from tick for different cadence)
+-- Sync loop - flush pending syncs and periodic full sync
 CreateThread(function()
     while true do
         Wait(cfg.sync_interval * 1000)
         for src in pairs(playerStatuses) do
-            Hydra.Status.Sync(src)
+            if pendingSync[src] then
+                local s = playerStatuses[src]
+                if s then
+                    TriggerClientEvent('hydra:status:sync', src, s)
+                end
+                pendingSync[src] = nil
+            end
         end
     end
 end)
@@ -197,19 +210,32 @@ Hydra.Modules.Register('status', {
 })
 
 -- Server event for client-reported status changes (e.g. stress from shooting)
+local clientAddCooldown = {} -- [source] = { [name] = lastTime }
 RegisterNetEvent('hydra:status:clientAdd')
 AddEventHandler('hydra:status:clientAdd', function(name, amount)
     local src = source
+    if not src or src <= 0 then return end
 
     -- Security: validate input
-    if type(name) ~= 'string' or type(amount) ~= 'number' then return end
+    if type(name) ~= 'string' or #name > 32 or type(amount) ~= 'number' then return end
     if not cfg.statuses[name] then return end
+
+    -- Rate limit: max one client-add per status per 500ms
+    local now = GetGameTimer()
+    if not clientAddCooldown[src] then clientAddCooldown[src] = {} end
+    if clientAddCooldown[src][name] and now - clientAddCooldown[src][name] < 500 then return end
+    clientAddCooldown[src][name] = now
 
     -- Cap client-reported additions to prevent exploits
     local maxAdd = 5.0
     amount = math.max(-maxAdd, math.min(maxAdd, amount))
 
     Hydra.Status.Add(src, name, amount)
+end)
+
+-- Cleanup cooldown tracking on player drop
+AddEventHandler('playerDropped', function()
+    clientAddCooldown[source] = nil
 end)
 
 exports('GetStatus', function(...) return Hydra.Status.Get(...) end)

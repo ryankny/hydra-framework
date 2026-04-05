@@ -211,6 +211,13 @@ function Hydra.Modules.GetData(name)
     return {}
 end
 
+--- Shorthand: Get module API (alias)
+--- @param name string
+--- @return table|nil
+function Hydra.Use(name)
+    return Hydra.Modules.Get(name)
+end
+
 -- Exports
 exports('GetModule', Hydra.Modules.Get)
 exports('IsModuleLoaded', Hydra.Modules.IsLoaded)

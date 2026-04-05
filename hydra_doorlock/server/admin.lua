@@ -20,7 +20,21 @@ AddEventHandler('hydra:doorlock:admin:create', function(data)
 
     -- Validate
     if type(data) ~= 'table' then return end
-    if not data.coords or not data.coords.x then return end
+    if not data.coords or type(data.coords) ~= 'table' then return end
+    if not tonumber(data.coords.x) or not tonumber(data.coords.y) or not tonumber(data.coords.z) then return end
+    if type(data.label) ~= 'string' or #data.label == 0 or #data.label > 128 then return end
+
+    -- Check max doors limit
+    local doorCount = 0
+    local all = Hydra.Doorlock.GetAll()
+    for _ in pairs(all) do doorCount = doorCount + 1 end
+    if doorCount >= cfg.max_doors then
+        TriggerClientEvent('hydra:notify:show', src, {
+            type = 'error', title = 'Doorlock',
+            message = ('Maximum door limit reached (%d).'):format(cfg.max_doors),
+        })
+        return
+    end
 
     -- Generate unique ID
     local id = data.id or ('door_' .. os.time() .. '_' .. math.random(1000, 9999))

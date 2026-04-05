@@ -42,10 +42,15 @@ AddEventHandler('hydra:doorlock:stateUpdate', function(id, locked)
         doors[id].locked = locked
         applyDoorState(id)
 
-        -- Play sound
+        -- Play sound (use hydra_audio if available)
         local door = doors[id]
         local soundCfg = locked and cfg.sounds.lock or cfg.sounds.unlock
-        PlaySoundFromCoord(-1, soundCfg.name, door.coords.x, door.coords.y, door.coords.z, soundCfg.set, false, 5.0, false)
+        local audioOk = pcall(function()
+            exports['hydra_audio']:PlayAtCoord(soundCfg.name, soundCfg.set, door.coords, 5.0, 'sfx')
+        end)
+        if not audioOk then
+            PlaySoundFromCoord(-1, soundCfg.name, door.coords.x, door.coords.y, door.coords.z, soundCfg.set, false, 5.0, false)
+        end
     end
 end)
 
@@ -80,7 +85,12 @@ AddEventHandler('hydra:doorlock:denied', function(id, reason)
     local door = doors[id]
     if door then
         local soundCfg = cfg.sounds.denied
-        PlaySoundFromCoord(-1, soundCfg.name, door.coords.x, door.coords.y, door.coords.z, soundCfg.set, false, 5.0, false)
+        local audioOk = pcall(function()
+            exports['hydra_audio']:PlayAtCoord(soundCfg.name, soundCfg.set, door.coords, 5.0, 'sfx')
+        end)
+        if not audioOk then
+            PlaySoundFromCoord(-1, soundCfg.name, door.coords.x, door.coords.y, door.coords.z, soundCfg.set, false, 5.0, false)
+        end
     end
 
     TriggerEvent('hydra:notify:show', {

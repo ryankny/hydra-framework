@@ -127,8 +127,9 @@ AddEventHandler('hydra:identity:characterLoaded', function(data)
         end
     end
 
-    -- Fade in
-    DoScreenFadeIn(1000)
+    -- Fade in (use hydra_camera if available)
+    local camOk = pcall(function() exports['hydra_camera']:FadeIn(1000) end)
+    if not camOk then DoScreenFadeIn(1000) end
 end)
 
 --- Event: Character created, update list
@@ -171,7 +172,8 @@ RegisterNUICallback('identity:selectCharacter', function(data, cb)
     selectedCharId = data.characterId
     local spawnLocation = data.spawnLocation
 
-    DoScreenFadeOut(500)
+    local camOk = pcall(function() exports['hydra_camera']:FadeOut(500) end)
+    if not camOk then DoScreenFadeOut(500) end
     Wait(600)
 
     TriggerServerEvent('hydra:identity:selectCharacter', selectedCharId, spawnLocation)

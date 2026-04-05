@@ -87,6 +87,9 @@ ensure hydra_status
 ensure hydra_death
 ensure hydra_emotes
 
+# Hydra Door Locks
+ensure hydra_doorlock
+
 # ---- Your Hydra Scripts Below ----
 # ensure hydra_inventory
 # ensure hydra_vehicles

@@ -73,6 +73,23 @@ ensure hydra_context
 # Hydra Weather & Time Sync
 ensure hydra_weather
 
+# Hydra Logging (load early, other modules log to it)
+ensure hydra_logs
+
+# Hydra Chat
+ensure hydra_chat
+
+# Hydra Framework Primitives
+ensure hydra_target
+ensure hydra_zones
+ensure hydra_blips
+ensure hydra_status
+ensure hydra_death
+ensure hydra_emotes
+
+# Hydra Door Locks
+ensure hydra_doorlock
+
 # ---- Your Hydra Scripts Below ----
 # ensure hydra_inventory
 # ensure hydra_vehicles

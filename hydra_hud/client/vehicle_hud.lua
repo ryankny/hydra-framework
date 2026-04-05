@@ -136,12 +136,26 @@ end
 
 --- Toggle seatbelt
 RegisterCommand('seatbelt', function()
+    if GetVehiclePedIsIn(PlayerPedId(), false) == 0 then return end
     seatbeltOn = not seatbeltOn
-    -- Play seatbelt sound (if a sound module exists)
     PlaySoundFrontend(-1, 'NAV_UP_DOWN', 'HUD_FRONTEND_DEFAULT_SOUNDSET', false)
+
+    TriggerEvent('hydra:notify:show', {
+        type = 'info', title = 'Seatbelt',
+        message = seatbeltOn and 'Seatbelt fastened.' or 'Seatbelt unfastened.',
+        duration = 2000,
+    })
 end, false)
 
 RegisterKeyMapping('seatbelt', 'Toggle Seatbelt', 'keyboard', 'B')
+
+--- Expose seatbelt state for other modules (e.g. hydra_world ejection)
+--- @return boolean
+function Hydra.HUD.GetSeatbelt()
+    return seatbeltOn
+end
+
+exports('GetSeatbelt', function() return seatbeltOn end)
 
 --- Vehicle HUD update loop
 CreateThread(function()

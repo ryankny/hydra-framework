@@ -94,34 +94,20 @@ if vehCfg and vehCfg.enabled then
         RegisterKeyMapping('engine', 'Toggle Engine', 'keyboard', '')
     end
 
-    -- Seatbelt system
+    -- Seatbelt ejection physics
+    -- Seatbelt toggle command and HUD indicator live in hydra_hud.
+    -- This module adds crash ejection when seatbelt is off.
     if vehCfg.seatbelt and vehCfg.seatbelt.enabled then
-        local hasSeatbelt = false
-
-        RegisterCommand('seatbelt', function()
-            local ped = PlayerPedId()
-            if GetVehiclePedIsIn(ped, false) == 0 then return end
-
-            hasSeatbelt = not hasSeatbelt
-
-            if hasSeatbelt then
-                TriggerEvent('hydra:notify:show', {
-                    type = 'info', title = 'Seatbelt',
-                    message = 'Seatbelt fastened.',
-                    duration = 2000,
-                })
-            else
-                TriggerEvent('hydra:notify:show', {
-                    type = 'info', title = 'Seatbelt',
-                    message = 'Seatbelt unfastened.',
-                    duration = 2000,
-                })
+        --- Read seatbelt state from HUD module (single source of truth)
+        local function isSeatbeltOn()
+            -- Try HUD API first, then export fallback
+            if Hydra.HUD and Hydra.HUD.GetSeatbelt then
+                return Hydra.HUD.GetSeatbelt()
             end
-
-            -- Sync to HUD
-            TriggerEvent('hydra:store:syncBulk', 'vehicleExtras', { seatbelt = hasSeatbelt })
-        end, false)
-        RegisterKeyMapping('seatbelt', 'Toggle Seatbelt', 'keyboard', 'B')
+            local ok, result = pcall(exports.hydra_hud.GetSeatbelt)
+            if ok then return result end
+            return false
+        end
 
         -- Ejection check
         CreateThread(function()
@@ -131,20 +117,21 @@ if vehCfg and vehCfg.enabled then
                 local ped = PlayerPedId()
                 local veh = GetVehiclePedIsIn(ped, false)
 
-                if veh ~= 0 and not hasSeatbelt then
+                if veh ~= 0 and not isSeatbeltOn() then
                     local speed = GetEntitySpeed(veh) * 3.6 -- to km/h
                     local decel = lastSpeed - speed
 
                     -- Sudden deceleration = crash
                     if decel > vehCfg.seatbelt.eject_speed * 0.3 and lastSpeed > vehCfg.seatbelt.eject_speed then
-                        -- Eject player
-                        local coords = GetEntityCoords(ped)
-                        local heading = GetEntityHeading(ped)
-                        SetEntityCoords(ped, coords.x, coords.y, coords.z + 1.0, false, false, false, false)
-                        SetPedToRagdoll(ped, 3000, 3000, 0, true, true, false)
-
+                        -- Eject player through windshield
                         local forceDir = GetEntityForwardVector(veh)
-                        ApplyForceToEntityCenterOfMass(ped, 1, forceDir.x * vehCfg.seatbelt.eject_force, forceDir.y * vehCfg.seatbelt.eject_force, vehCfg.seatbelt.eject_force * 0.5, false, false, true, false)
+                        SetEntityCoords(ped, GetEntityCoords(ped).x, GetEntityCoords(ped).y, GetEntityCoords(ped).z + 1.0, false, false, false, false)
+                        SetPedToRagdoll(ped, 3000, 3000, 0, true, true, false)
+                        ApplyForceToEntityCenterOfMass(ped, 1,
+                            forceDir.x * vehCfg.seatbelt.eject_force,
+                            forceDir.y * vehCfg.seatbelt.eject_force,
+                            vehCfg.seatbelt.eject_force * 0.5,
+                            false, false, true, false)
 
                         -- Damage
                         local health = GetEntityHealth(ped)
@@ -157,17 +144,12 @@ if vehCfg and vehCfg.enabled then
                 else
                     lastSpeed = 0.0
                 end
-
-                -- Reset seatbelt when exiting vehicle
-                if veh == 0 and hasSeatbelt then
-                    hasSeatbelt = false
-                end
             end
         end)
 
-        -- Public API
+        -- Public API reads from HUD
         function Hydra.World.HasSeatbelt()
-            return hasSeatbelt
+            return isSeatbeltOn()
         end
     end
 

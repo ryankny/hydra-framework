@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/loading.css">
+    <!-- User config MUST load before loading.js -->
+    <script src="../config/loadingscreen.js"></script>
+</head>
+<body>
+    <!-- Background layer -->
+    <div id="bg-layer" class="bg-layer">
+        <div id="bg-content"></div>
+        <div id="bg-overlay" class="bg-overlay"></div>
+    </div>
+
+    <!-- Particles -->
+    <canvas id="particles" class="particles-canvas"></canvas>
+
+    <!-- Main content wrapper -->
+    <div id="loading-root" class="loading-root">
+
+        <!-- Content card -->
+        <div id="loading-card" class="loading-card">
+            <!-- Logo -->
+            <div id="loading-logo" class="loading-logo">
+                <img id="logo-img" src="assets/logo.svg" alt="Logo">
+            </div>
+
+            <!-- Server name -->
+            <h1 id="server-name" class="server-name"></h1>
+            <p id="server-tagline" class="server-tagline"></p>
+
+            <!-- Description -->
+            <p id="server-description" class="server-description"></p>
+
+            <!-- Loading spinner + progress -->
+            <div id="loading-progress" class="loading-progress">
+                <div id="spinner" class="spinner">
+                    <div class="spinner-ring"></div>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-track">
+                        <div id="progress-bar" class="progress-bar"></div>
+                    </div>
+                    <div class="progress-info">
+                        <span id="progress-text" class="progress-text">Loading...</span>
+                        <span id="progress-percent" class="progress-percent">0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tips -->
+            <div id="tips-container" class="tips-container" style="display:none">
+                <div class="tip-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                </div>
+                <p id="tip-text" class="tip-text"></p>
+            </div>
+        </div>
+
+        <!-- Social links -->
+        <div id="socials" class="socials" style="display:none"></div>
+
+        <!-- Rules panel (toggleable) -->
+        <div id="rules-toggle" class="rules-toggle" style="display:none">
+            <button id="rules-btn" class="rules-btn">Server Rules</button>
+        </div>
+        <div id="rules-panel" class="rules-panel" style="display:none">
+            <h3 class="rules-title">Server Rules</h3>
+            <ol id="rules-list" class="rules-list"></ol>
+            <button id="rules-close" class="rules-close">Close</button>
+        </div>
+
+        <!-- Credits -->
+        <div id="credits" class="credits" style="display:none"></div>
+
+        <!-- Changelog -->
+        <div id="changelog" class="changelog" style="display:none">
+            <h3 class="changelog-title">What's New</h3>
+            <div id="changelog-entries" class="changelog-entries"></div>
+        </div>
+
+        <!-- Audio control -->
+        <div id="audio-control" class="audio-control" style="display:none">
+            <button id="audio-btn" class="audio-btn" title="Toggle Music">
+                <svg id="audio-icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                <svg id="audio-icon-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+            </button>
+            <input type="range" id="audio-volume" class="audio-volume" min="0" max="100" value="30">
+        </div>
+
+        <!-- Powered by badge -->
+        <div id="hydra-badge" class="hydra-badge">
+            Powered by <strong>Hydra Framework</strong>
+        </div>
+    </div>
+
+    <!-- Custom HTML injection point -->
+    <div id="custom-html"></div>
+
+    <!-- Audio element -->
+    <audio id="bg-audio" preload="auto"></audio>
+
+    <script src="js/config.js"></script>
+    <script src="js/loading.js"></script>
+</body>
+</html>

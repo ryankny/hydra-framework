@@ -38,6 +38,9 @@ set mysql_connection_string "mysql://user:password@localhost/hydra?charset=utf8m
 # Database
 ensure oxmysql
 
+# Hydra Loading Screen (loads before everything)
+ensure hydra_loadingscreen
+
 # Hydra Core (must be first)
 ensure hydra_core
 

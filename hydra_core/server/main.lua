@@ -25,6 +25,11 @@ CreateThread(function()
     local defaultConfig = HydraConfig and HydraConfig.Default or {}
     Hydra.Config.Load(defaultConfig)
 
+    -- Step 1b: Apply server.cfg convar overrides immediately
+    if Hydra.ConfigManager and Hydra.ConfigManager.LoadConvars then
+        Hydra.ConfigManager.LoadConvars()
+    end
+
     -- Step 2: Initialize security
     Hydra.Utils.Log('info', 'Initializing security system...')
     if Hydra.Security and Hydra.Security.Init then
@@ -117,6 +122,17 @@ end)
 RegisterNetEvent('hydra:playerLoaded')
 AddEventHandler('hydra:playerLoaded', function()
     local src = source
+
+    -- Wait for framework to be fully ready (modules loaded) before processing
+    local timeout = GetGameTimer() + 30000
+    while not Hydra.IsReady() and GetGameTimer() < timeout do
+        Wait(100)
+    end
+
+    if not Hydra.IsReady() then
+        Hydra.Utils.Log('error', 'Framework not ready when player %d loaded — modules may not respond', src)
+    end
+
     Hydra.Modules.Broadcast('onPlayerJoin', src)
     Hydra.Utils.Log('debug', 'Player %d fully loaded', src)
 end)

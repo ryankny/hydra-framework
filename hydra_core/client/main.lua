@@ -39,12 +39,25 @@ CreateThread(function()
         Hydra.ClientCallbacks.Init()
     end
 
-    -- Tell server we're loaded
+    -- Mark framework ready on client (modules can start waiting for events)
+    Hydra._SetReady()
+
+    -- Ensure screen is faded out before identity/spawn takes over
+    if not IsScreenFadedOut() then
+        DoScreenFadeOut(0)
+    end
+
+    -- Tell server we're loaded — this triggers identity/character selection
     TriggerServerEvent('hydra:playerLoaded')
     playerLoaded = true
 
-    -- Mark framework ready on client
-    Hydra._SetReady()
+    -- Safety net: if nothing fades the screen in within 30 seconds, force it
+    SetTimeout(30000, function()
+        if IsScreenFadedOut() or not IsScreenFadingIn() then
+            DoScreenFadeIn(1000)
+            Hydra.Utils.Log('warn', 'Safety fade-in triggered — identity/spawn may have failed')
+        end
+    end)
 end)
 
 --- Receive config from server

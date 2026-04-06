@@ -145,11 +145,14 @@
         }
 
         // Listen for FiveM loading events
+        // FiveM sends: { eventName: 'loadProgress', loadFraction: 0.0-1.0 }
+        // and also: { eventName: 'startInitFunction', type: 'MAP'|'INIT_SESSION' }
         window.addEventListener('message', (event) => {
             const data = event.data;
+            if (!data || !data.eventName) return;
 
             if (data.eventName === 'loadProgress') {
-                const count = data.loadingScreenData?.loadFraction;
+                const count = data.loadFraction ?? data.loadingScreenData?.loadFraction;
                 if (count !== undefined) {
                     const percent = Math.min(Math.round(count * 100), 100);
                     bar.style.width = percent + '%';
@@ -168,7 +171,7 @@
             }
 
             if (data.eventName === 'startInitFunction') {
-                const type = data.loadingScreenData?.type;
+                const type = data.type ?? data.loadingScreenData?.type;
                 if (type === 'MAP') {
                     document.getElementById('progress-text').textContent = 'Loading map...';
                 } else if (type === 'INIT_SESSION') {

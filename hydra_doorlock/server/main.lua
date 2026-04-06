@@ -52,6 +52,20 @@ end
 -- DOOR LOADING
 -- =============================================
 
+local function countTable(t)
+    local n = 0
+    for _ in pairs(t) do n = n + 1 end
+    return n
+end
+
+local function countSource(src)
+    local n = 0
+    for _, s in pairs(doorSource) do
+        if s == src then n = n + 1 end
+    end
+    return n
+end
+
 --- Load all doors from config and database
 local function loadDoors()
     -- Load config doors
@@ -107,20 +121,6 @@ local function loadDoors()
         countTable(doors),
         countSource('config'),
         countSource('database'))
-end
-
-local function countTable(t)
-    local n = 0
-    for _ in pairs(t) do n = n + 1 end
-    return n
-end
-
-local function countSource(src)
-    local n = 0
-    for _, s in pairs(doorSource) do
-        if s == src then n = n + 1 end
-    end
-    return n
 end
 
 -- =============================================

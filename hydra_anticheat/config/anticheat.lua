@@ -11,7 +11,7 @@
 HydraConfig = HydraConfig or {}
 
 HydraConfig.AntiCheat = {
-    enabled = true,
+    enabled = false,
     debug = false,
 
     -- -----------------------------------------------------------------------

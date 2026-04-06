@@ -73,6 +73,9 @@ CreateThread(function()
     -- Wait for character to be selected and loaded
     while not characterLoaded do Wait(200) end
 
+    -- Now show the HUD
+    Hydra.HUD.SetVisible(true)
+
     -- Send initial cash/bank/job data
     Wait(500)
     local store = Hydra.Data and Hydra.Data.Store.GetAll('playerData') or {}

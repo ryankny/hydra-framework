@@ -34,6 +34,14 @@ function Hydra.ConfigManager.LoadConvars()
             Hydra.Utils.Log('debug', 'Config override from convar: %s = %s', override.path, tostring(value))
         end
     end
+
+    -- If debug is enabled but log_level wasn't explicitly set, default to 'debug'
+    if Hydra.Config.Get('debug.enabled', false) then
+        local explicitLevel = GetConvar('hydra_log_level', '__NONE__')
+        if explicitLevel == '__NONE__' then
+            Hydra.Config.Set('debug.log_level', 'debug')
+        end
+    end
 end
 
 --- Load module-specific config
@@ -66,8 +74,4 @@ function Hydra.ConfigManager.LoadModuleConfig(moduleName, defaults)
     return config
 end
 
---- Initialize config manager (called during boot)
-CreateThread(function()
-    Wait(0)
-    Hydra.ConfigManager.LoadConvars()
-end)
+-- Convars are loaded during boot sequence in server/main.lua

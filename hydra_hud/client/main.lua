@@ -9,7 +9,7 @@
 Hydra = Hydra or {}
 Hydra.HUD = Hydra.HUD or {}
 
-local hudVisible = true
+local hudVisible = false  -- Start hidden, show after character loads
 local lastState = {}
 
 --- Send data to HUD NUI

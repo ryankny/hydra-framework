@@ -9,7 +9,7 @@ game 'gta5'
 name 'hydra_anticheat'
 description 'Hydra Framework - Advanced Anti-Cheat System'
 author 'Hydra Framework'
-version '1.0.0'
+version '2.0.0'
 
 dependencies {
     'hydra_core',
@@ -23,11 +23,17 @@ server_scripts {
     'server/main.lua',
     'server/detections.lua',
     'server/events.lua',
+    'server/combat.lua',
+    'server/vehicles.lua',
+    'server/network.lua',
 }
 
 client_scripts {
     'client/main.lua',
     'client/monitors.lua',
+    'client/combat.lua',
+    'client/vehicles.lua',
+    'client/menu_detection.lua',
 }
 
 lua54 'yes'

@@ -29,6 +29,7 @@ local GetVehiclePedIsIn = GetVehiclePedIsIn
 local GetPedConfigFlag = GetPedConfigFlag
 local IsEntityVisible = IsEntityVisible
 local TriggerServerEvent = TriggerServerEvent
+local NetworkGetEntityOwner = NetworkGetEntityOwner
 local Wait = Wait
 
 -- =========================================================================
@@ -37,7 +38,6 @@ local Wait = Wait
 
 if cfg.movement and cfg.movement.enabled then
     CreateThread(function()
-        -- Wait for client to be ready
         while not NetworkIsPlayerActive(PlayerId()) do Wait(500) end
         Wait(cfg.movement.spawn_grace_period or 10000)
 
@@ -60,10 +60,60 @@ if cfg.movement and cfg.movement.enabled then
                     end
                 end
 
-                TriggerServerEvent('hydra:anticheat:report:position', pos, inVehicle, onGround, vehSpeed)
+                -- Extended data for server validation
+                local isSwimming = IsPedSwimming(ped)
+                local isSwimmingUnderWater = IsPedSwimmingUnderWater(ped)
+                local speed = GetEntitySpeed(ped)
+
+                TriggerServerEvent('hydra:anticheat:report:position', pos, inVehicle, onGround, vehSpeed, {
+                    swimming = isSwimming,
+                    underwater = isSwimmingUnderWater,
+                    pedSpeed = speed,
+                })
             end
         end
     end)
+
+    -- Bounds / underground check (less frequent)
+    if cfg.movement.bounds_check or cfg.movement.underground_check then
+        CreateThread(function()
+            while not NetworkIsPlayerActive(PlayerId()) do Wait(500) end
+            Wait(15000)
+
+            while true do
+                Wait(5000)
+
+                local ped = PlayerPedId()
+                if not DoesEntityExist(ped) then goto continue end
+
+                local pos = GetEntityCoords(ped)
+
+                -- Bounds check
+                if cfg.movement.bounds_check then
+                    local min = cfg.movement.map_min
+                    local max = cfg.movement.map_max
+                    if pos.x < min.x or pos.y < min.y or pos.z < min.z or
+                       pos.x > max.x or pos.y > max.y or pos.z > max.z then
+                        TriggerServerEvent('hydra:anticheat:report:bounds', pos)
+                    end
+                end
+
+                -- Underground check
+                if cfg.movement.underground_check then
+                    local retval, groundZ = GetGroundZFor_3dCoord(pos.x, pos.y, pos.z + 1.0, false)
+                    if retval and pos.z < (groundZ + cfg.movement.underground_tolerance) then
+                        -- Could be in an interior/underground area — additional check
+                        local interior = GetInteriorFromEntity(ped)
+                        if interior == 0 then   -- Not in an interior
+                            TriggerServerEvent('hydra:anticheat:report:underground', pos, groundZ)
+                        end
+                    end
+                end
+
+                ::continue::
+            end
+        end)
+    end
 end
 
 -- =========================================================================
@@ -76,10 +126,9 @@ if cfg.weapons and cfg.weapons.enabled then
         Wait(5000)
 
         local lastWeapon = 0
-        local reportInterval = 5000     -- Report current weapon every 5s
 
         while true do
-            Wait(reportInterval)
+            Wait(5000)
 
             local ped = PlayerPedId()
             if DoesEntityExist(ped) then
@@ -92,7 +141,7 @@ if cfg.weapons and cfg.weapons.enabled then
         end
     end)
 
-    -- Rapid-fire detection: runs at a faster interval but only when weapon is out
+    -- Rapid-fire detection
     CreateThread(function()
         while not NetworkIsPlayerActive(PlayerId()) do Wait(500) end
         Wait(5000)
@@ -102,13 +151,11 @@ if cfg.weapons and cfg.weapons.enabled then
             local weapon = GetSelectedPedWeapon(ped)
 
             if weapon ~= `WEAPON_UNARMED` and DoesEntityExist(ped) then
-                -- Active weapon — check at 100ms intervals
                 Wait(100)
                 if IsPedShooting(ped) then
                     TriggerServerEvent('hydra:anticheat:report:fire', weapon, GetGameTimer())
                 end
             else
-                -- No weapon — sleep longer
                 Wait(1000)
             end
         end
@@ -125,24 +172,58 @@ if cfg.godmode and cfg.godmode.enabled then
         Wait(3000)
 
         local lastHealth = 200
-        local interval = 500    -- Check health every 500ms
+        local lastArmour = 0
+        local lastRegenCheck = GetGameTimer()
 
         while true do
-            Wait(interval)
+            Wait(500)
 
             local ped = PlayerPedId()
             if DoesEntityExist(ped) then
                 local health = GetEntityHealth(ped)
+                local armour = GetPedArmour(ped)
+                local now = GetGameTimer()
+
+                -- Damage taken
                 if health < lastHealth and lastHealth > 0 then
                     local damage = lastHealth - health
                     if damage > 0 then
                         TriggerServerEvent('hydra:anticheat:report:damage', damage)
                     end
                 end
+
+                -- Health regeneration tracking (detect impossibly fast regen)
+                if health > lastHealth and lastHealth > 0 and cfg.godmode.max_regen_per_second then
+                    local dt = (now - lastRegenCheck) / 1000
+                    if dt > 0 then
+                        local regenRate = (health - lastHealth) / dt
+                        if regenRate > cfg.godmode.max_regen_per_second then
+                            TriggerServerEvent('hydra:anticheat:report:regen', {
+                                rate = regenRate,
+                                from = lastHealth,
+                                to = health,
+                                dt = dt,
+                            })
+                        end
+                    end
+                end
+
+                -- Invincibility check
+                if cfg.godmode.invincible_check then
+                    if GetPlayerInvincible(PlayerId()) then
+                        TriggerServerEvent('hydra:anticheat:report:ped_flags', {
+                            invincible = true,
+                            anomaly = 'player_invincible'
+                        })
+                    end
+                end
+
                 lastHealth = health
+                lastArmour = armour
+                lastRegenCheck = now
 
                 -- Reset on respawn
-                if health >= 200 and lastHealth < 200 then
+                if health >= 200 and lastHealth < 100 then
                     lastHealth = health
                 end
             end
@@ -159,7 +240,7 @@ if cfg.entities and cfg.entities.enabled then
         while not NetworkIsPlayerActive(PlayerId()) do Wait(500) end
         Wait(10000)
 
-        local interval = 15000      -- Every 15 seconds
+        local interval = 15000
         local playerId = PlayerId()
 
         while true do
@@ -198,6 +279,40 @@ if cfg.entities and cfg.entities.enabled then
             })
         end
     end)
+
+    -- Attached object detection
+    if cfg.entities.detect_attached_objects then
+        CreateThread(function()
+            while not NetworkIsPlayerActive(PlayerId()) do Wait(500) end
+            Wait(20000)
+
+            while true do
+                Wait(10000)
+
+                local ped = PlayerPedId()
+                if not DoesEntityExist(ped) then goto continue end
+
+                -- Check for suspicious objects attached to our ped
+                local allObjs = GetGamePool('CObject')
+                local attachedCount = 0
+                for i = 1, #allObjs do
+                    local obj = allObjs[i]
+                    if IsEntityAttachedToEntity(obj, ped) then
+                        attachedCount = attachedCount + 1
+                    end
+                end
+
+                -- If excessive attached objects, someone may be griefing us
+                if attachedCount > 5 then
+                    TriggerServerEvent('hydra:anticheat:report:attached', {
+                        count = attachedCount,
+                    })
+                end
+
+                ::continue::
+            end
+        end)
+    end
 end
 
 -- =========================================================================
@@ -209,7 +324,8 @@ if cfg.spectate and cfg.spectate.enabled then
         while not NetworkIsPlayerActive(PlayerId()) do Wait(500) end
         Wait(5000)
 
-        local interval = 10000      -- Every 10 seconds
+        local interval = cfg.spectate.check_interval or 5000
+        local consecutiveFlags = 0
 
         while true do
             Wait(interval)
@@ -218,7 +334,23 @@ if cfg.spectate and cfg.spectate.enabled then
             if DoesEntityExist(ped) then
                 local camPos = GetFinalRenderedCamCoord()
                 local pedPos = GetEntityCoords(ped)
-                TriggerServerEvent('hydra:anticheat:report:camera', camPos, pedPos)
+
+                -- Only report if camera is suspiciously far
+                local dx = camPos.x - pedPos.x
+                local dy = camPos.y - pedPos.y
+                local dz = camPos.z - pedPos.z
+                local distSq = dx*dx + dy*dy + dz*dz
+                local maxDist = cfg.spectate.max_camera_distance or 200.0
+
+                if distSq > maxDist * maxDist then
+                    consecutiveFlags = consecutiveFlags + 1
+                    if consecutiveFlags >= (cfg.spectate.consecutive or 3) then
+                        TriggerServerEvent('hydra:anticheat:report:camera', camPos, pedPos)
+                        consecutiveFlags = 0
+                    end
+                else
+                    consecutiveFlags = 0
+                end
             end
         end
     end)
@@ -247,7 +379,6 @@ if cfg.ped_flags and cfg.ped_flags.enabled then
                     infiniteStamina = GetPedConfigFlag(ped, 7, true),
                 }
 
-                -- Only report if something anomalous is detected
                 if flags.superJump or flags.invisible or flags.noRagdoll or flags.infiniteStamina then
                     TriggerServerEvent('hydra:anticheat:report:ped_flags', flags)
                 end
@@ -263,9 +394,8 @@ end
 if cfg.resources and cfg.resources.enabled and cfg.resources.detect_injection then
     CreateThread(function()
         while not NetworkIsPlayerActive(PlayerId()) do Wait(500) end
-        Wait(15000)     -- Wait for all resources to load
+        Wait(15000)
 
-        -- Snapshot known resources at startup
         local knownResources = {}
         local numResources = GetNumResources()
         for i = 0, numResources - 1 do
@@ -275,6 +405,16 @@ if cfg.resources and cfg.resources.enabled and cfg.resources.detect_injection th
 
         local interval = cfg.resources.check_interval or 30000
 
+        -- Also detect resource stops mid-session
+        if cfg.resources.detect_stop then
+            AddEventHandler('onResourceStop', function(resource)
+                -- Don't flag hydra_anticheat itself stopping (during restart)
+                if resource == 'hydra_anticheat' then return end
+                -- Report to server
+                TriggerServerEvent('hydra:anticheat:report:resource_stop', resource)
+            end)
+        end
+
         while true do
             Wait(interval)
 
@@ -282,10 +422,11 @@ if cfg.resources and cfg.resources.enabled and cfg.resources.detect_injection th
             for i = 0, currentNum - 1 do
                 local name = GetResourceByFindIndex(i)
                 if name and not knownResources[name] then
-                    -- New resource appeared that wasn't there at startup
-                    -- Report to server (server decides action)
-                    TriggerServerEvent('hydra:anticheat:report:model_spawn', 'injected_resource:' .. name)
-                    knownResources[name] = true     -- Don't re-report
+                    TriggerServerEvent('hydra:anticheat:report:menu', {
+                        type = 'injected_resource',
+                        name = name,
+                    })
+                    knownResources[name] = true
                 end
             end
         end
@@ -306,10 +447,7 @@ CreateThread(function()
         local ped = PlayerPedId()
         if not DoesEntityExist(ped) then goto continue end
 
-        -- Check for impossible states that indicate memory modification
-
-        -- 1. Player ped should not have certain flags set by menus
-        -- CPlayerInfo modifications (extremely high wanted level, etc.)
+        -- Impossible wanted level
         local wantedLevel = GetPlayerWantedLevel(PlayerId())
         if wantedLevel > 5 then
             TriggerServerEvent('hydra:anticheat:report:ped_flags', {
@@ -318,51 +456,13 @@ CreateThread(function()
             })
         end
 
-        -- 2. Check for ped model changes to non-player models (common troll hack)
+        -- Non-freemode model check
         local model = GetEntityModel(ped)
-        -- Players should typically be mp_m_freemode_01 or mp_f_freemode_01
-        -- We don't enforce this strictly but flag unusual models
         local isFreemode = model == `mp_m_freemode_01` or model == `mp_f_freemode_01`
-        if not isFreemode then
-            -- Could be legitimate (admin morphing, identity system, etc.)
-            -- Just log it, don't flag
-            if cfg.debug then
-                print('[AC] Non-freemode model detected: ' .. model)
-            end
+        if not isFreemode and cfg.debug then
+            print('[AC] Non-freemode model: ' .. model)
         end
-
-        -- 3. Check for frozen position while moving (potential desync exploit)
-        -- This is a subtle check: if the player's velocity is non-zero but
-        -- position doesn't change, it could indicate a desync exploit
-        -- (handled more accurately by the server via position reports)
 
         ::continue::
     end
-end)
-
--- =========================================================================
--- PARTICLE EFFECT MONITORING
--- =========================================================================
-
-if cfg.particles and cfg.particles.enabled then
-    -- Override StartParticleFxLoopedAtCoord etc. is not possible in FiveM,
-    -- but we can monitor for excessive network particle events
-    -- The server tracks this via events — client just needs to report
-    -- when it creates particles that it owns
-
-    -- This is handled by hooking into hydra_object / other modules
-    -- that create particle effects, via the server event system
-end
-
--- =========================================================================
--- SCREEN CAPTURE ON REQUEST
--- =========================================================================
-
-RegisterNetEvent('hydra:anticheat:screenshot', function()
-    -- If screenshot-basic or similar is available
-    pcall(function()
-        exports['screenshot-basic']:requestScreenshot(function(data)
-            TriggerServerEvent('hydra:anticheat:screenshot:result', data)
-        end)
-    end)
 end)

@@ -1,8 +1,8 @@
 --[[
     Hydra AntiCheat - Client Main
 
-    Client-side coordinator: initialises monitors, handles server warnings,
-    provides local state helpers, and manages the reporting pipeline.
+    Client-side coordinator: initialises monitors, handles server communications,
+    heartbeat challenge-response, screenshot capture, and the reporting pipeline.
     All enforcement decisions are made server-side — the client only reports.
 ]]
 
@@ -20,19 +20,17 @@ local GetEntityCoords = GetEntityCoords
 local GetEntityHealth = GetEntityHealth
 local GetPedArmour = GetPedArmour
 local IsPedInAnyVehicle = IsPedInAnyVehicle
-local IsEntityOnScreen = IsEntityOnScreen
 local GetFinalRenderedCamCoord = GetFinalRenderedCamCoord
 local GetSelectedPedWeapon = GetSelectedPedWeapon
 local GetAmmoInPedWeapon = GetAmmoInPedWeapon
-local IsPedOnFoot = IsPedOnFoot
 local IsPedFalling = IsPedFalling
 local IsEntityInAir = IsEntityInAir
-local IsControlPressed = IsControlPressed
 local GetEntitySpeed = GetEntitySpeed
-local IsPedSprinting = IsPedSprinting
-
+local IsPedShooting = IsPedShooting
 local PlayerId = PlayerId
 local NetworkIsPlayerActive = NetworkIsPlayerActive
+local TriggerServerEvent = TriggerServerEvent
+local Wait = Wait
 
 -- ---------------------------------------------------------------------------
 -- State
@@ -47,12 +45,10 @@ local lastWarning = 0
 
 RegisterNetEvent('hydra:anticheat:warn', function(reason)
     if not reason then return end
-    -- Throttle warnings to prevent spam
     local now = GetGameTimer()
     if (now - lastWarning) < 5000 then return end
     lastWarning = now
 
-    -- Show via hydra_notify if available, otherwise native notification
     local ok = pcall(function()
         exports['hydra_notify']:Show({
             title = 'Anti-Cheat Warning',
@@ -69,101 +65,56 @@ RegisterNetEvent('hydra:anticheat:warn', function(reason)
 end)
 
 -- ---------------------------------------------------------------------------
--- Report helpers (sent to server for validation)
+-- Heartbeat challenge-response system
 -- ---------------------------------------------------------------------------
 
-local function reportPosition()
-    local ped = PlayerPedId()
-    if not DoesEntityExist(ped) then return end
+if cfg.heartbeat and cfg.heartbeat.enabled then
+    local pendingToken = nil
 
-    local pos = GetEntityCoords(ped)
-    local inVehicle = IsPedInAnyVehicle(ped, false)
-    local onGround = not IsEntityInAir(ped) and not IsPedFalling(ped)
-    local vehSpeed = 0.0
+    RegisterNetEvent('hydra:anticheat:heartbeat:challenge', function(token)
+        if not token then return end
+        pendingToken = token
+        -- Respond immediately with the token
+        TriggerServerEvent('hydra:anticheat:heartbeat:response', token)
+    end)
 
-    if inVehicle then
-        local veh = GetVehiclePedIsIn(ped, false)
-        if veh and veh ~= 0 then
-            vehSpeed = GetEntitySpeed(veh)
+    -- Backup: if challenge is missed, periodic self-check
+    CreateThread(function()
+        while not NetworkIsPlayerActive(PlayerId()) do Wait(500) end
+        Wait(5000)
+
+        while true do
+            Wait(cfg.heartbeat.interval or 30000)
+            -- Send a keep-alive even without challenge (proves client AC is running)
+            TriggerServerEvent('hydra:anticheat:heartbeat:alive')
         end
+    end)
+end
+
+-- ---------------------------------------------------------------------------
+-- Screenshot system
+-- ---------------------------------------------------------------------------
+
+RegisterNetEvent('hydra:anticheat:screenshot', function(reason)
+    -- Try screenshot-basic first, then other common screenshot resources
+    local captured = false
+
+    pcall(function()
+        exports['screenshot-basic']:requestScreenshot(function(data)
+            TriggerServerEvent('hydra:anticheat:screenshot:result', data, reason)
+            captured = true
+        end)
+    end)
+
+    if not captured then
+        -- Fallback: try discord-screenshot or similar
+        pcall(function()
+            exports['discord-screenshot']:requestScreenshot(function(data)
+                TriggerServerEvent('hydra:anticheat:screenshot:result', data, reason)
+            end)
+        end)
     end
-
-    TriggerServerEvent('hydra:anticheat:report:position', pos, inVehicle, onGround, vehSpeed)
-end
-
-local function reportWeapon()
-    local ped = PlayerPedId()
-    if not DoesEntityExist(ped) then return end
-
-    local weapon = GetSelectedPedWeapon(ped)
-    -- Unarmed hash
-    if weapon == `WEAPON_UNARMED` then return end
-
-    local ammo = GetAmmoInPedWeapon(ped, weapon)
-    TriggerServerEvent('hydra:anticheat:report:weapon', weapon, ammo)
-end
-
-local function reportCamera()
-    local ped = PlayerPedId()
-    if not DoesEntityExist(ped) then return end
-
-    local camPos = GetFinalRenderedCamCoord()
-    local pedPos = GetEntityCoords(ped)
-    TriggerServerEvent('hydra:anticheat:report:camera', camPos, pedPos)
-end
-
-local function reportEntities()
-    local ped = PlayerPedId()
-    local playerId = PlayerId()
-
-    local peds = 0
-    local vehicles = 0
-    local objects = 0
-
-    -- Count entities owned by this player
-    -- Use pool iteration for performance
-    local allPeds = GetGamePool('CPed')
-    for i = 1, #allPeds do
-        local entity = allPeds[i]
-        if entity ~= ped and NetworkGetEntityOwner(entity) == playerId then
-            peds = peds + 1
-        end
-    end
-
-    local allVehs = GetGamePool('CVehicle')
-    for i = 1, #allVehs do
-        if NetworkGetEntityOwner(allVehs[i]) == playerId then
-            vehicles = vehicles + 1
-        end
-    end
-
-    local allObjs = GetGamePool('CObject')
-    for i = 1, #allObjs do
-        if NetworkGetEntityOwner(allObjs[i]) == playerId then
-            objects = objects + 1
-        end
-    end
-
-    TriggerServerEvent('hydra:anticheat:report:entities', {
-        peds = peds,
-        vehicles = vehicles,
-        objects = objects,
-    })
-end
-
-local function reportPedFlags()
-    local ped = PlayerPedId()
-    if not DoesEntityExist(ped) then return end
-
-    local flags = {
-        superJump = GetPedConfigFlag(ped, 14, true),        -- Super jump flag
-        invisible = not IsEntityVisible(ped),
-        noRagdoll = GetPedConfigFlag(ped, 166, true),       -- No ragdoll
-        infiniteStamina = GetPedConfigFlag(ped, 7, true),   -- Never tired
-    }
-
-    TriggerServerEvent('hydra:anticheat:report:ped_flags', flags)
-end
+end)
 
 -- ---------------------------------------------------------------------------
 -- Spawn notification
@@ -173,7 +124,6 @@ function Hydra.AntiCheat.NotifySpawn()
     TriggerServerEvent('hydra:anticheat:report:spawn')
 end
 
--- Listen for common spawn events
 RegisterNetEvent('hydra:players:spawned', function()
     Hydra.AntiCheat.NotifySpawn()
 end)
@@ -182,34 +132,79 @@ AddEventHandler('playerSpawned', function()
 end)
 
 -- ---------------------------------------------------------------------------
--- Weapon fire tracking
+-- Teleport whitelist notification (when legitimate teleport occurs)
 -- ---------------------------------------------------------------------------
 
-local lastWeaponFire = 0
-local lastWeaponHash = 0
+function Hydra.AntiCheat.NotifyTeleport()
+    TriggerServerEvent('hydra:anticheat:report:teleport_whitelist')
+end
 
--- This runs in monitors.lua render thread to detect shots fired
-function Hydra.AntiCheat.CheckWeaponFire(ped)
-    if IsPedShooting(ped) then
-        local weapon = GetSelectedPedWeapon(ped)
-        local now = GetGameTimer()
-        TriggerServerEvent('hydra:anticheat:report:fire', weapon, now)
+-- Listen for framework teleport events
+if cfg.teleport_whitelist then
+    for _, eventName in ipairs(cfg.teleport_whitelist.events or {}) do
+        RegisterNetEvent(eventName, function()
+            Hydra.AntiCheat.NotifyTeleport()
+        end)
     end
 end
 
 -- ---------------------------------------------------------------------------
--- Damage tracking
+-- Chat reporting (for chat protection)
 -- ---------------------------------------------------------------------------
 
-local lastHealth = 200
+function Hydra.AntiCheat.ReportChat(message, isCommand)
+    if not cfg.chat_protection or not cfg.chat_protection.enabled then return end
+    TriggerServerEvent('hydra:anticheat:report:chat', message, isCommand or false)
+end
 
-function Hydra.AntiCheat.CheckDamage(ped)
-    local health = GetEntityHealth(ped)
-    if health < lastHealth and lastHealth > 0 then
-        local amount = lastHealth - health
-        TriggerServerEvent('hydra:anticheat:report:damage', amount)
-    end
-    lastHealth = health
+-- Hook into chat if available
+AddEventHandler('chatMessage', function(src, name, message)
+    Hydra.AntiCheat.ReportChat(message, false)
+end)
+
+-- ---------------------------------------------------------------------------
+-- Entity ownership change tracking
+-- ---------------------------------------------------------------------------
+
+if cfg.entities and cfg.entities.ownership_check then
+    local trackedOwnership = {}
+
+    CreateThread(function()
+        while not NetworkIsPlayerActive(PlayerId()) do Wait(500) end
+        Wait(12000)
+
+        local playerId = PlayerId()
+
+        while true do
+            Wait(5000)
+
+            -- Check for entities we've taken control of
+            local currentOwned = {}
+            local takeoverCount = 0
+
+            for _, pool in ipairs({'CPed', 'CVehicle', 'CObject'}) do
+                local entities = GetGamePool(pool)
+                for i = 1, #entities do
+                    local ent = entities[i]
+                    if NetworkGetEntityOwner(ent) == playerId then
+                        local netId = NetworkGetNetworkIdFromEntity(ent)
+                        if netId and netId > 0 then
+                            currentOwned[netId] = true
+                            if not trackedOwnership[netId] then
+                                takeoverCount = takeoverCount + 1
+                            end
+                        end
+                    end
+                end
+            end
+
+            if takeoverCount > 10 then
+                TriggerServerEvent('hydra:anticheat:report:entity_takeover', takeoverCount)
+            end
+
+            trackedOwnership = currentOwned
+        end
+    end)
 end
 
 -- ---------------------------------------------------------------------------
@@ -219,17 +214,17 @@ end
 CreateThread(function()
     Wait(2000)
 
-    -- Notify server we're ready
     TriggerServerEvent('hydra:anticheat:client:ready')
     isReady = true
 
-    -- Register with module system
     pcall(function()
         Hydra.Modules.Register('hydra_anticheat', {
             priority = 95,
             dependencies = { 'hydra_core' },
             api = {
                 NotifySpawn = Hydra.AntiCheat.NotifySpawn,
+                NotifyTeleport = Hydra.AntiCheat.NotifyTeleport,
+                ReportChat = Hydra.AntiCheat.ReportChat,
             },
             hooks = {
                 onLoad = function()
@@ -247,3 +242,5 @@ end)
 -- ---------------------------------------------------------------------------
 
 exports('NotifySpawn', Hydra.AntiCheat.NotifySpawn)
+exports('NotifyTeleport', Hydra.AntiCheat.NotifyTeleport)
+exports('ReportChat', Hydra.AntiCheat.ReportChat)

@@ -9,10 +9,6 @@ description: >
   anti-cheat, HUD, identity, weather, world management, and more.
   No ESX/QBCore dependency required — includes a bridge for compatibility.
 
-variables:
-  dbName: hydra
-  steamWebApiKey: none
-
 tasks:
   # ── Download CFX default resources ───────────────────────────
   - action: download_github
@@ -55,7 +51,7 @@ tasks:
       set sv_enforceGameBuild 3258
 
       sv_licenseKey "{{svLicense}}"
-      set steam_webApiKey "{{steamWebApiKey}}"
+      #set steam_webApiKey "changeme"
 
       # ---- Database ----
       set mysql_connection_string "{{dbConnectionString}}"

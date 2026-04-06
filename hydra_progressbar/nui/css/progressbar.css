@@ -1,0 +1,96 @@
+:root {
+    --hydra-primary: #6C5CE7;
+    --hydra-primary-rgb: 108, 92, 231;
+    --hydra-bg-card: #1E1E2E;
+    --hydra-text-primary: #FFFFFF;
+    --hydra-text-secondary: #A0A0B8;
+    --hydra-border: #2A2A3C;
+    --hydra-font: 'Plus Jakarta Sans', sans-serif;
+    --hydra-radius-lg: 12px;
+    --hydra-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: transparent;
+    font-family: var(--hydra-font);
+    user-select: none;
+    pointer-events: none;
+}
+
+#progressbar-root {
+    position: fixed;
+    bottom: 120px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+}
+
+.progress-glass {
+    width: 280px;
+    padding: 12px 16px;
+    background: rgba(30, 30, 46, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--hydra-radius-lg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: var(--hydra-shadow-lg);
+}
+
+.progress-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--hydra-text-primary);
+    margin-bottom: 8px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.progress-track {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--hydra-primary), #a78bfa);
+    border-radius: 2px;
+    transition: width 50ms linear;
+    box-shadow: 0 0 8px rgba(var(--hydra-primary-rgb), 0.5);
+}
+
+/* Animations */
+#progress-container {
+    transition: opacity 200ms ease, transform 200ms ease;
+}
+
+#progress-container.hidden {
+    display: none;
+}
+
+#progress-container.fade-in {
+    animation: progressIn 0.25s ease forwards;
+}
+
+#progress-container.fade-out {
+    animation: progressOut 0.2s ease forwards;
+}
+
+@keyframes progressIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes progressOut {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(8px); }
+}

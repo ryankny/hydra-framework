@@ -15,21 +15,31 @@ Hydra.Inventory = Hydra.Inventory or {}
 local ItemRegistry = {}
 local ItemsByCategory = {}
 
-for _, item in ipairs(HydraConfig.Items) do
-    item.stackable = item.stackable ~= false
-    item.maxStack = item.maxStack or (item.stackable and 50 or 1)
-    item.weight = item.weight or 0
-    item.useable = item.useable or false
-    item.unique = item.unique or false
-    item.category = item.category or 'misc'
-    item.image = item.image or (item.name .. '.png')
-    item.description = item.description or ''
+local function buildRegistry()
+    -- Clear existing
+    for k in pairs(ItemRegistry) do ItemRegistry[k] = nil end
+    for k in pairs(ItemsByCategory) do ItemsByCategory[k] = nil end
 
-    ItemRegistry[item.name] = item
+    for _, item in ipairs(HydraConfig.Items) do
+        item.stackable = item.stackable ~= false
+        item.maxStack = item.maxStack or (item.stackable and 50 or 1)
+        item.weight = item.weight or 0
+        item.useable = item.useable or false
+        item.unique = item.unique or false
+        item.category = item.category or 'misc'
+        item.image = item.image or (item.name .. '.png')
+        item.description = item.description or ''
+        -- rarity is optional, nil means no rarity display
 
-    ItemsByCategory[item.category] = ItemsByCategory[item.category] or {}
-    ItemsByCategory[item.category][#ItemsByCategory[item.category] + 1] = item
+        ItemRegistry[item.name] = item
+
+        ItemsByCategory[item.category] = ItemsByCategory[item.category] or {}
+        ItemsByCategory[item.category][#ItemsByCategory[item.category] + 1] = item
+    end
 end
+
+-- Initial build
+buildRegistry()
 
 -- ---------------------------------------------------------------------------
 -- Public item lookup functions
@@ -69,6 +79,20 @@ end
 function Hydra.Inventory.IsConsumable(name)
     local item = ItemRegistry[name]
     return item and item.consumable ~= nil
+end
+
+function Hydra.Inventory.GetItemRarity(name)
+    local item = ItemRegistry[name]
+    if not item or not item.rarity then return nil end
+    local rarityDef = HydraConfig.Inventory.rarity[item.rarity]
+    return rarityDef and { key = item.rarity, label = rarityDef.label, color = rarityDef.color } or nil
+end
+
+--- Rebuild the item registry from HydraConfig.Items.
+--- Call after modifying HydraConfig.Items at runtime.
+function Hydra.Inventory.ReloadItems()
+    buildRegistry()
+    return #HydraConfig.Items
 end
 
 -- ---------------------------------------------------------------------------

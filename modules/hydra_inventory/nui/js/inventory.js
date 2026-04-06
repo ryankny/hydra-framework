@@ -24,6 +24,7 @@
         searchQuery: '',
         secondarySearchQuery: '',
         dragData: null,           // { inventory, slot, item, el }
+        rarityConfig: {},         // { common: { label, color }, ... }
     };
 
     // ---- DOM Refs ----
@@ -57,6 +58,7 @@
         infoDesc: document.getElementById('info-desc'),
         infoWeight: document.getElementById('info-weight'),
         infoCategory: document.getElementById('info-category'),
+        infoRarity: document.getElementById('info-rarity'),
         infoCount: document.getElementById('info-count'),
         btnUse: document.getElementById('btn-use'),
         btnGive: document.getElementById('btn-give'),
@@ -189,6 +191,14 @@
         wt.textContent = formatWeight((item.weight || 0) * (item.count || 1));
         el.appendChild(wt);
 
+        // Rarity
+        if (item.rarity && state.rarityConfig[item.rarity]) {
+            const rarityDef = state.rarityConfig[item.rarity];
+            el.classList.add('rarity', 'rarity-' + item.rarity);
+            el.style.borderColor = rarityDef.color;
+            el.style.boxShadow = `inset 0 0 12px ${rarityDef.color}22, 0 0 6px ${rarityDef.color}33`;
+        }
+
         // Draggable
         el.draggable = true;
 
@@ -272,6 +282,18 @@
         dom.infoWeight.textContent = formatWeight((item.weight || 0) * (item.count || 1));
         dom.infoCategory.textContent = capitalize(item.category || 'general');
         dom.infoCount.textContent = item.count || 1;
+
+        // Rarity badge
+        if (dom.infoRarity) {
+            if (item.rarity && state.rarityConfig[item.rarity]) {
+                const r = state.rarityConfig[item.rarity];
+                dom.infoRarity.textContent = r.label;
+                dom.infoRarity.style.color = r.color;
+                dom.infoRarity.parentElement.style.display = '';
+            } else {
+                dom.infoRarity.parentElement.style.display = 'none';
+            }
+        }
 
         // Image
         dom.infoImg.innerHTML = '';
@@ -770,28 +792,33 @@
     function openInventory(data) {
         state.open = true;
 
+        // Support both key names: playerInventory (direct NUI) or inventory (via client relay)
+        const playerInv = data.playerInventory || data.inventory;
+        const secondaryInv = data.secondaryInventory || data.secondary;
+        const moneyData = data.money || (data.config && data.config.money);
+
         // Player inventory
         state.playerInventory = {
-            items: indexItems(data.playerInventory.items),
-            maxSlots: data.playerInventory.maxSlots || 40,
-            maxWeight: data.playerInventory.maxWeight || 120000,
-            weight: data.playerInventory.weight || 0,
+            items: indexItems(playerInv.items),
+            maxSlots: playerInv.maxSlots || 40,
+            maxWeight: playerInv.maxWeight || 120000,
+            weight: playerInv.weight || 0,
         };
 
         // Secondary inventory
-        if (data.secondaryInventory) {
+        if (secondaryInv) {
             state.secondaryInventory = {
-                id: data.secondaryInventory.id,
-                type: data.secondaryInventory.type,
-                label: data.secondaryInventory.label,
-                items: indexItems(data.secondaryInventory.items),
-                maxSlots: data.secondaryInventory.maxSlots || 30,
-                maxWeight: data.secondaryInventory.maxWeight || 50000,
-                weight: data.secondaryInventory.weight || 0,
+                id: secondaryInv.id,
+                type: secondaryInv.type,
+                label: secondaryInv.label,
+                items: indexItems(secondaryInv.items),
+                maxSlots: secondaryInv.maxSlots || 30,
+                maxWeight: secondaryInv.maxWeight || 50000,
+                weight: secondaryInv.weight || 0,
             };
 
-            dom.secondaryLabel.textContent = data.secondaryInventory.label || 'Storage';
-            updateSecondaryIcon(data.secondaryInventory.type);
+            dom.secondaryLabel.textContent = secondaryInv.label || 'Storage';
+            updateSecondaryIcon(secondaryInv.type);
             dom.secondaryPanel.classList.remove('hidden');
         } else {
             state.secondaryInventory = null;
@@ -799,11 +826,11 @@
         }
 
         // Money
-        if (data.money) {
+        if (moneyData) {
             state.money = {
-                cash: data.money.cash || 0,
-                bank: data.money.bank || 0,
-                crypto: data.money.crypto || 0,
+                cash: moneyData.cash || 0,
+                bank: moneyData.bank || 0,
+                crypto: moneyData.crypto || 0,
             };
         }
 
@@ -877,8 +904,28 @@
 
     // ---- NUI Message Handler ----
     window.addEventListener('message', (event) => {
-        const data = event.data;
-        if (!data || !data.type) return;
+        let data = event.data;
+        if (!data) return;
+
+        // Normalize: support both { type } and { module, action, data } formats
+        if (!data.type && data.module === 'inventory' && data.action) {
+            const actionMap = {
+                open: 'openInventory',
+                close: 'closeInventory',
+                update: 'fullUpdate',
+                updateMoney: 'updateMoney',
+                hotbar: 'hotbar',
+                rarityConfig: 'rarityConfig',
+            };
+            const mapped = actionMap[data.action];
+            if (mapped) {
+                // Merge inner data onto top-level for consistent access
+                const inner = data.data || {};
+                data = Object.assign({}, inner, { type: mapped });
+            }
+        }
+
+        if (!data.type) return;
 
         switch (data.type) {
             case 'openInventory':
@@ -887,6 +934,36 @@
 
             case 'closeInventory':
                 closeInventory();
+                break;
+
+            case 'fullUpdate':
+                // Full inventory refresh from server
+                if (state.playerInventory && data.items) {
+                    state.playerInventory.items = indexItems(data.items);
+                    if (data.weight !== undefined) state.playerInventory.weight = data.weight;
+                    if (data.maxWeight !== undefined) state.playerInventory.maxWeight = data.maxWeight;
+                    renderPlayerGrid();
+                    updateWeightBar(dom.playerWeightFill, dom.playerWeightText,
+                        state.playerInventory.weight, state.playerInventory.maxWeight);
+                }
+                break;
+
+            case 'rarityConfig':
+                // Receive rarity definitions (on open or hot-reload)
+                if (data && typeof data === 'object') {
+                    // data may be the rarity map itself or wrapped
+                    const defs = data.rarity || data;
+                    for (const key in defs) {
+                        if (defs[key] && defs[key].color) {
+                            state.rarityConfig[key] = defs[key];
+                        }
+                    }
+                }
+                // Re-render if open
+                if (state.open) {
+                    renderPlayerGrid();
+                    renderSecondaryGrid();
+                }
                 break;
 
             case 'updateSlot': {

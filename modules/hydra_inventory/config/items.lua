@@ -7,6 +7,9 @@
     Categories: general, consumable, weapon, ammo, tool, material,
                 clothing, electronic, document, drug, key, misc
 
+    Rarity (optional): common, uncommon, rare, epic, legendary
+        rarity = 'rare',  -- adds colored border + label in UI
+
     Consumable format:
         consumable = {
             status = { hunger = 20, thirst = 10 },  -- hydra_status effects

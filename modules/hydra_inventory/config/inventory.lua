@@ -9,6 +9,17 @@ HydraConfig = HydraConfig or {}
 
 HydraConfig.Inventory = {
     -- -----------------------------------------------------------------------
+    -- Item Rarity (optional per-item field: rarity = 'common')
+    -- -----------------------------------------------------------------------
+    rarity = {
+        common    = { label = 'Common',    color = '#B0B0B0' },
+        uncommon  = { label = 'Uncommon',  color = '#4CAF50' },
+        rare      = { label = 'Rare',      color = '#2196F3' },
+        epic      = { label = 'Epic',      color = '#9C27B0' },
+        legendary = { label = 'Legendary', color = '#FF9800' },
+    },
+
+    -- -----------------------------------------------------------------------
     -- Player inventory
     -- -----------------------------------------------------------------------
     player = {

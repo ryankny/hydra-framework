@@ -232,6 +232,13 @@ AddEventHandler('hydra:inventory:client:open', function(data)
 
     SetNuiFocus(true, true)
 
+    -- Push rarity config alongside open
+    SendNUIMessage({
+        module = 'inventory',
+        action = 'rarityConfig',
+        data = cfg.rarity or {},
+    })
+
     SendNUIMessage({
         module = 'inventory',
         action = 'open',
@@ -835,6 +842,34 @@ CreateThread(function()
 
         wasDead = dead
     end
+end)
+
+-- =========================================================================
+-- HOT RELOAD — receive updated items from server
+-- =========================================================================
+
+RegisterNetEvent('hydra:inventory:client:itemsReloaded')
+AddEventHandler('hydra:inventory:client:itemsReloaded', function(items, rarityDefs)
+    if items then
+        HydraConfig.Items = items
+    end
+    if rarityDefs then
+        HydraConfig.Inventory.rarity = rarityDefs
+    end
+
+    -- Rebuild shared registry
+    if Hydra.Inventory.ReloadItems then
+        Hydra.Inventory.ReloadItems()
+    end
+
+    -- Push rarity config to NUI
+    SendNUIMessage({
+        module = 'inventory',
+        action = 'rarityConfig',
+        data = rarityDefs or HydraConfig.Inventory.rarity,
+    })
+
+    DebugLog('Items hot-reloaded — ' .. tostring(#HydraConfig.Items) .. ' items')
 end)
 
 -- =========================================================================

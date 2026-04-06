@@ -22,6 +22,38 @@ local moneyAccounts = {}    -- [identifier] = { cash = 0, bank = 0, crypto = 0 }
 local openInventories = {}  -- [src]        = inventoryId
 
 -- ---------------------------------------------------------------------------
+-- Item enrichment — merge registry display data onto inventory items for NUI
+-- ---------------------------------------------------------------------------
+
+local function enrichItems(items)
+    local enriched = {}
+    for slot, item in pairs(items) do
+        if item and item.name then
+            local data = Hydra.Inventory.GetItemData(item.name)
+            if data then
+                enriched[slot] = {
+                    name = item.name,
+                    count = item.count,
+                    metadata = item.metadata,
+                    slot = item.slot or slot,
+                    label = data.label,
+                    weight = data.weight,
+                    image = data.image,
+                    category = data.category,
+                    description = data.description,
+                    useable = data.useable,
+                    stackable = data.stackable,
+                    rarity = data.rarity,
+                }
+            else
+                enriched[slot] = item
+            end
+        end
+    end
+    return enriched
+end
+
+-- ---------------------------------------------------------------------------
 -- Identifier helper
 -- ---------------------------------------------------------------------------
 
@@ -980,7 +1012,7 @@ RegisterNetEvent('hydra:inventory:open', function()
 
     TriggerClientEvent('hydra:inventory:client:open', src, {
         playerInventory = {
-            items = inv.items,
+            items = enrichItems(inv.items),
             maxSlots = maxSlots,
             maxWeight = maxWeight,
             weight = weight,
@@ -1138,7 +1170,7 @@ RegisterNetEvent('hydra:inventory:move', function(data)
     local inv = inventories[identifier]
     if inv then
         TriggerClientEvent('hydra:inventory:client:update', src, {
-            items = inv.items,
+            items = enrichItems(inv.items),
             weight = Hydra.Inventory.GetWeight(src),
             maxWeight = Hydra.Inventory.GetMaxWeight(src),
         })
@@ -1205,7 +1237,7 @@ RegisterNetEvent('hydra:inventory:drop', function(slot, count)
 
     -- Update client
     TriggerClientEvent('hydra:inventory:client:update', src, {
-        items = inventories[identifier].items,
+        items = enrichItems(inventories[identifier].items),
         weight = Hydra.Inventory.GetWeight(src),
     })
 end)
@@ -1260,11 +1292,11 @@ RegisterNetEvent('hydra:inventory:give', function(targetId, slot, count)
 
     -- Update both clients
     TriggerClientEvent('hydra:inventory:client:update', src, {
-        items = inventories[srcId].items,
+        items = enrichItems(inventories[srcId].items),
         weight = Hydra.Inventory.GetWeight(src),
     })
     TriggerClientEvent('hydra:inventory:client:update', targetId, {
-        items = inventories[tgtId].items,
+        items = enrichItems(inventories[tgtId].items),
         weight = Hydra.Inventory.GetWeight(targetId),
     })
 end)
@@ -1349,11 +1381,11 @@ RegisterNetEvent('hydra:inventory:rob', function(targetId)
 
     -- Update both clients
     TriggerClientEvent('hydra:inventory:client:update', src, {
-        items = inventories[srcId].items,
+        items = enrichItems(inventories[srcId].items),
         weight = Hydra.Inventory.GetWeight(src),
     })
     TriggerClientEvent('hydra:inventory:client:update', targetId, {
-        items = inventories[tgtId].items,
+        items = enrichItems(inventories[tgtId].items),
         weight = Hydra.Inventory.GetWeight(targetId),
     })
 end)
@@ -1370,7 +1402,7 @@ RegisterNetEvent('hydra:inventory:search', function(targetId)
     -- Open as secondary inventory (read-only for police search)
     TriggerClientEvent('hydra:inventory:client:open', src, {
         playerInventory = {
-            items = inventories[getIdentifier(src)].items,
+            items = enrichItems(inventories[getIdentifier(src)].items),
             maxSlots = Hydra.Inventory.GetMaxSlots(src),
             maxWeight = Hydra.Inventory.GetMaxWeight(src),
             weight = Hydra.Inventory.GetWeight(src),
@@ -1379,7 +1411,7 @@ RegisterNetEvent('hydra:inventory:search', function(targetId)
             id = 'search:' .. targetId,
             type = 'search',
             label = (GetPlayerName(targetId) or 'Player') .. "'s Inventory",
-            items = inventories[tgtId].items,
+            items = enrichItems(inventories[tgtId].items),
             maxSlots = Hydra.Inventory.GetMaxSlots(targetId),
             maxWeight = Hydra.Inventory.GetMaxWeight(targetId),
             weight = Hydra.Inventory.GetWeight(targetId),
@@ -1427,7 +1459,7 @@ RegisterNetEvent('hydra:inventory:dumpster:search', function()
     local identifier = getIdentifier(src)
     if identifier and inventories[identifier] then
         TriggerClientEvent('hydra:inventory:client:update', src, {
-            items = inventories[identifier].items,
+            items = enrichItems(inventories[identifier].items),
             weight = Hydra.Inventory.GetWeight(src),
         })
     end
@@ -1448,7 +1480,7 @@ function Hydra.Inventory.OpenSecondary(src, secondaryData)
 
     TriggerClientEvent('hydra:inventory:client:open', src, {
         playerInventory = {
-            items = inventories[identifier].items,
+            items = enrichItems(inventories[identifier].items),
             maxSlots = Hydra.Inventory.GetMaxSlots(src),
             maxWeight = Hydra.Inventory.GetMaxWeight(src),
             weight = Hydra.Inventory.GetWeight(src),
@@ -1504,6 +1536,90 @@ AddEventHandler('playerDropped', function()
 end)
 
 -- =========================================================================
+-- HOT RELOAD — reload items config without restarting
+-- =========================================================================
+
+-- Save reference to shared registry rebuild before we overwrite
+local sharedReloadItems = Hydra.Inventory.ReloadItems
+
+--- Reload item definitions at runtime.
+--- Re-executes config/items.lua and rebuilds the shared registry,
+--- then pushes updated item data to all connected players.
+function Hydra.Inventory.HotReloadItems(source)
+    -- Re-execute the items config file to pick up changes
+    local fileContent = LoadResourceFile(GetCurrentResourceName(), 'config/items.lua')
+
+    if not fileContent then
+        print('[Hydra] ^1Item reload failed — could not read config/items.lua^0')
+        return false, 'Could not read config/items.lua'
+    end
+
+    -- Parse the updated config
+    local fn, err = load(fileContent, '@hydra_inventory/config/items.lua')
+    if not fn then
+        print('[Hydra] ^1Item reload failed — syntax error: ' .. tostring(err) .. '^0')
+        return false, 'Syntax error: ' .. tostring(err)
+    end
+
+    -- Execute — this overwrites HydraConfig.Items
+    local ok, execErr = pcall(fn)
+    if not ok then
+        print('[Hydra] ^1Item reload failed — runtime error: ' .. tostring(execErr) .. '^0')
+        return false, 'Runtime error: ' .. tostring(execErr)
+    end
+
+    -- Rebuild the shared registry
+    local count
+    if sharedReloadItems then
+        count = sharedReloadItems()
+    else
+        count = #HydraConfig.Items
+    end
+
+    -- Build rarity map for NUI
+    local rarityDefs = HydraConfig.Inventory.rarity or {}
+
+    -- Push updated item data to all connected clients
+    TriggerClientEvent('hydra:inventory:client:itemsReloaded', -1, HydraConfig.Items, rarityDefs)
+
+    print('[Hydra] ^2Items reloaded — ' .. tostring(count) .. ' items registered^0')
+    return true, count
+end
+
+--- Admin command: /reloaditems
+RegisterCommand('reloaditems', function(src, args, raw)
+    -- Console (src 0) or admin check
+    if src ~= 0 then
+        local allowed = false
+        pcall(function()
+            allowed = exports['hydra_core']:HasPermission(src, 'admin')
+        end)
+        if not allowed then
+            -- Fallback: check for ace permission
+            if not IsPlayerAceAllowed(src, 'hydra.admin') then
+                pcall(function()
+                    exports['hydra_notify']:Send(src, { title = 'Inventory', message = 'No permission', type = 'error' })
+                end)
+                return
+            end
+        end
+    end
+
+    local success, result = Hydra.Inventory.HotReloadItems(src)
+    local msg = success
+        and ('Items reloaded — ' .. tostring(result) .. ' items')
+        or ('Reload failed — ' .. tostring(result))
+
+    if src == 0 then
+        print('[Hydra] ' .. msg)
+    else
+        pcall(function()
+            exports['hydra_notify']:Send(src, { title = 'Inventory', message = msg, type = success and 'success' or 'error' })
+        end)
+    end
+end, true) -- restricted by default
+
+-- =========================================================================
 -- MODULE REGISTRATION
 -- =========================================================================
 
@@ -1535,6 +1651,7 @@ CreateThread(function()
                 GetItemData = Hydra.Inventory.GetItemData,
                 OpenSecondary = Hydra.Inventory.OpenSecondary,
                 ClearInventory = Hydra.Inventory.ClearInventory,
+                HotReloadItems = Hydra.Inventory.HotReloadItems,
             },
             hooks = {
                 onLoad = function()
@@ -1576,3 +1693,5 @@ exports('RegisterUseHandler', Hydra.Inventory.RegisterUseHandler)
 exports('GetItemData', Hydra.Inventory.GetItemData)
 exports('OpenSecondary', Hydra.Inventory.OpenSecondary)
 exports('GetItemLabel', Hydra.Inventory.GetItemLabel)
+exports('ReloadItems', Hydra.Inventory.HotReloadItems)
+exports('GetItemRarity', Hydra.Inventory.GetItemRarity)

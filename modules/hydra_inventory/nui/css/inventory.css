@@ -522,6 +522,20 @@ html, body {
     opacity: 1;
 }
 
+/* ---- Rarity ---- */
+.inv-slot.rarity {
+    border-width: 2px;
+    transition: all var(--hydra-transition-fast), border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.inv-slot.rarity:hover {
+    filter: brightness(1.1);
+}
+
+.info-rarity-tag {
+    font-weight: 700;
+}
+
 /* ============================================
    Item Info Panel
    ============================================ */

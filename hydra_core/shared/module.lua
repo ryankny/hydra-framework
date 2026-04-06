@@ -81,12 +81,27 @@ function Hydra.Modules.Load(name)
         return true
     end
 
-    -- Check dependencies
+    -- Check dependencies (accept both 'data' and 'hydra_data' formats)
     for _, dep in ipairs(module.dependencies) do
-        if not modules[dep] or modules[dep].state ~= STATE.READY then
-            Hydra.Utils.Log('error', 'Module "%s" requires "%s" which is not ready', name, dep)
-            module.state = STATE.ERROR
-            return false
+        local depName = dep
+        -- Strip hydra_ prefix if present, to match registered short names
+        if not modules[depName] and depName:sub(1, 6) == 'hydra_' then
+            depName = depName:sub(7)
+        end
+        -- Also try adding prefix if short name not found
+        if not modules[depName] then
+            depName = 'hydra_' .. dep
+        end
+        -- Final check
+        if not modules[depName] or modules[depName].state ~= STATE.READY then
+            -- Skip 'core' dependency — hydra_core is the framework itself, always ready
+            if dep == 'hydra_core' or dep == 'core' then
+                -- Core is implicitly ready since we're running inside it
+            else
+                Hydra.Utils.Log('error', 'Module "%s" requires "%s" which is not ready', name, dep)
+                module.state = STATE.ERROR
+                return false
+            end
         end
     end
 

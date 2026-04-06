@@ -15,14 +15,14 @@ Hydra.Modules.Register('data', {
     priority = 90, -- Load early, other modules depend on data
 
     onLoad = function()
-        -- Load data config
-        local config = Hydra.ConfigManager.LoadModuleConfig('data', {
-            adapter = 'mysql',
-            cache = { enabled = true, default_ttl = 300, max_entries = 10000 },
+        -- Load data config (ConfigManager is server-only in hydra_core, use Config.Get or defaults)
+        local config = {
+            adapter = Hydra.Config and Hydra.Config.Get('modules.data.adapter', 'mysql') or 'mysql',
+            cache = Hydra.Config and Hydra.Config.Get('modules.data.cache', { enabled = true, default_ttl = 300, max_entries = 10000 }) or { enabled = true, default_ttl = 300, max_entries = 10000 },
             subscriptions = { enabled = true },
-            auto_migrate = true,
+            auto_migrate = Hydra.Config and Hydra.Config.Get('modules.data.auto_migrate', true) or true,
             query = { max_results = 1000, default_page_size = 50 },
-        })
+        }
 
         -- Initialize cache
         if config.cache and config.cache.enabled ~= false then

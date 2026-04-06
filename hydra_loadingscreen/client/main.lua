@@ -11,6 +11,9 @@ CreateThread(function()
         Wait(100)
     end
 
+    -- Shut down the native GTA "Loading Story Mode" screen immediately
+    ShutdownLoadingScreen()
+
     -- Additional wait to ensure everything is rendered
     Wait(2000)
 
@@ -20,6 +23,6 @@ CreateThread(function()
     -- Wait for the exit animation to finish
     Wait(1500)
 
-    -- Shut down the loading screen
+    -- Shut down the custom NUI loading screen
     ShutdownLoadingScreenNui()
 end)

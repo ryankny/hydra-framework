@@ -52,7 +52,6 @@ if npcCfg and npcCfg.enabled then
             while true do
                 -- Block peds from using phones to report crimes
                 SetPlayerCanBeHassledByGangs(PlayerId(), false)
-                BlockPlayerVehicleInPhotoPiggyBack(PlayerId(), true)
 
                 Wait(5000)
             end
@@ -72,7 +71,7 @@ if npcCfg and npcCfg.enabled then
 
                 while found do
                     if DoesEntityExist(ped) and not IsPedAPlayer(ped) then
-                        if IsEntityNearEntity(ped, PlayerPedId(), 100.0, 100.0, 100.0, false, true) then
+                        if #(GetEntityCoords(ped) - playerPos) < 100.0 then
                             if IsPedInCombat(ped, 0) then
                                 SetPedAccuracy(ped, math.floor(npcCfg.npc_accuracy * 100))
                             end

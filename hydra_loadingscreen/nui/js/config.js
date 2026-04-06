@@ -8,13 +8,13 @@
 (() => {
     'use strict';
 
-    // Ensure config exists
-    if (typeof LOADING_CONFIG === 'undefined') {
+    // Ensure config exists and is a valid object
+    if (typeof LOADING_CONFIG === 'undefined' || !LOADING_CONFIG || typeof LOADING_CONFIG !== 'object') {
         console.warn('[Hydra] No LOADING_CONFIG found, using defaults.');
         window.LOADING_CONFIG = {};
     }
 
-    const cfg = window.LOADING_CONFIG;
+    const cfg = window.LOADING_CONFIG || {};
 
     // Apply theme to CSS variables
     if (cfg.theme) {

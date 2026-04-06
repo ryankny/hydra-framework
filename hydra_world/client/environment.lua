@@ -51,7 +51,8 @@ if envCfg and envCfg.enabled then
     CreateThread(function()
         while true do
             if not envCfg.stunt_jumps then
-                SetPlayerCanDoStuntJumps(PlayerId(), false)
+                -- Cancel any active stunt jump
+                CancelStuntJump()
             end
 
             Wait(5000)

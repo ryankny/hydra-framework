@@ -55,6 +55,14 @@ local function hasChanged(newData, oldData)
     return false
 end
 
+--- Track when character has been selected and loaded
+local characterLoaded = false
+
+RegisterNetEvent('hydra:identity:characterLoaded')
+AddEventHandler('hydra:identity:characterLoaded', function()
+    characterLoaded = true
+end)
+
 --- Player HUD update loop
 CreateThread(function()
     while not Hydra.IsReady() do Wait(200) end
@@ -62,8 +70,8 @@ CreateThread(function()
     playerConfig = HydraHUDConfig.player or {}
     if not playerConfig.enabled then return end
 
-    -- Wait for player to be loaded
-    while not Hydra.PlayerState or not Hydra.PlayerState.IsLoaded() do Wait(200) end
+    -- Wait for character to be selected and loaded
+    while not characterLoaded do Wait(200) end
 
     -- Send initial cash/bank/job data
     Wait(500)

@@ -28,7 +28,7 @@ local GetEntityCoords       = GetEntityCoords
 local DoesEntityExist       = DoesEntityExist
 local GetPedConfigFlag      = GetPedConfigFlag
 local IsEntityVisible       = IsEntityVisible
-local IsEntityInvincible    = IsEntityInvincible
+-- IsEntityInvincible is not a valid FiveM native; use GetPlayerInvincible instead
 local GetPlayerInvincible   = GetPlayerInvincible
 local GetEntityModel        = GetEntityModel
 local GetNumResources       = GetNumResources
@@ -42,7 +42,7 @@ local IsNightvisionActive   = IsNightvisionActive
 local SetEntityCoords       = SetEntityCoords
 local SetEntityVisible      = SetEntityVisible
 local SetPlayerInvincible   = SetPlayerInvincible
-local GetPedScriptTaskCommand = GetPedScriptTaskCommand
+-- GetPedScriptTaskCommand is not a valid FiveM native; use GetIsTaskActive instead
 local IsPedShooting         = IsPedShooting
 local type                  = type
 local pairs                 = pairs
@@ -347,10 +347,7 @@ if cfg.ped_flags and cfg.ped_flags.enabled then
             flags.invincibleFlag = GetPedConfigFlag(ped, 62, true)
             if flags.invincibleFlag then detected = true end
 
-            -- Direct invincibility checks
-            flags.entityInvincible = IsEntityInvincible(ped)
-            if flags.entityInvincible then detected = true end
-
+            -- Direct invincibility check
             flags.playerInvincible = GetPlayerInvincible(PlayerId())
             if flags.playerInvincible then detected = true end
 
@@ -383,7 +380,6 @@ if cfg.ped_flags and cfg.ped_flags.enabled and cfg.ped_flags.detect_task_clear t
         while not NetworkIsPlayerActive(PlayerId()) do Wait(500) end
         Wait(11000) -- staggered start
 
-        local TASK_NOTHING = 0x811E343C
         local maxRate = cfg.ped_flags.task_clear_rate or 5
         local clearCount = 0
         local windowStart = GetGameTimer()
@@ -396,8 +392,11 @@ if cfg.ped_flags and cfg.ped_flags.enabled and cfg.ped_flags.detect_task_clear t
             local ped = PlayerPedId()
             if not DoesEntityExist(ped) then goto continue end
 
-            local taskCmd = GetPedScriptTaskCommand(ped)
-            local isTaskNothing = (taskCmd == TASK_NOTHING)
+            -- Check if ped has no active task (idle) using common task hashes
+            local isTaskNothing = not IsPedWalking(ped) and not IsPedRunning(ped)
+                and not IsPedSprinting(ped) and not IsPedInAnyVehicle(ped, false)
+                and not IsPedRagdoll(ped) and not IsPedFalling(ped)
+                and not GetIsTaskActive(ped, 0) -- CTaskHandsUp
 
             -- Count transitions into TASK_NOTHING
             if isTaskNothing and not wasTaskNothing then

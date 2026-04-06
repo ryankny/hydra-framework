@@ -21,7 +21,7 @@ local table_insert = table.insert
 local table_remove = table.remove
 local math_random = math.random
 local math_floor = math.floor
-local os_time = os.time
+local os_time = os and os.time or function() return 0 end
 local GetGameTimer = GetGameTimer
 
 --- Generate a unique ID (server-safe, no crypto dependency)

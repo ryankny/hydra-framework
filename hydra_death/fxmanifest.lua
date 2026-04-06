@@ -17,6 +17,11 @@ dependencies {
 }
 
 shared_scripts {
+    '@hydra_core/shared/config.lua',
+    '@hydra_core/shared/utils.lua',
+    '@hydra_core/shared/events.lua',
+    '@hydra_core/shared/module.lua',
+    '@hydra_core/shared/api.lua',
     'config/death.lua',
 }
 

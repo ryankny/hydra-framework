@@ -17,17 +17,178 @@ tasks:
     subpath: resources
     dest: ./resources/[cfx-default]
 
-  # ── Download oxmysql (required database driver) ──────────────
-  - action: download_github
-    src: https://github.com/overextended/oxmysql
-    ref: main
-    dest: ./resources/[standalone]/oxmysql
+  # ── Download oxmysql (built release) ─────────────────────────
+  - action: download_file
+    url: https://github.com/overextended/oxmysql/releases/latest/download/oxmysql.zip
+    dest: ./tmp/oxmysql.zip
 
-  # ── Download Hydra Framework ─────────────────────────────────
+  - action: unzip
+    src: ./tmp/oxmysql.zip
+    dest: ./resources/[standalone]
+
+  - action: remove_path
+    path: ./tmp/oxmysql.zip
+
+  # ── Download Hydra Framework to temp location ────────────────
   - action: download_github
     src: https://github.com/ryankny/hydra-framework
     ref: master
-    dest: ./resources/[hydra]
+    dest: ./tmp/hydra-framework
+
+  # ── Move hydra_core into [hydra] bracket folder ──────────────
+  - action: move_path
+    src: ./tmp/hydra-framework/hydra_core
+    dest: ./resources/[hydra]/hydra_core
+
+  # ── Move each module from modules/ into [hydra] ──────────────
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_anims
+    dest: ./resources/[hydra]/hydra_anims
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_anticheat
+    dest: ./resources/[hydra]/hydra_anticheat
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_audio
+    dest: ./resources/[hydra]/hydra_audio
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_blips
+    dest: ./resources/[hydra]/hydra_blips
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_bridge
+    dest: ./resources/[hydra]/hydra_bridge
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_camera
+    dest: ./resources/[hydra]/hydra_camera
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_chat
+    dest: ./resources/[hydra]/hydra_chat
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_commands
+    dest: ./resources/[hydra]/hydra_commands
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_context
+    dest: ./resources/[hydra]/hydra_context
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_data
+    dest: ./resources/[hydra]/hydra_data
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_death
+    dest: ./resources/[hydra]/hydra_death
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_doorlock
+    dest: ./resources/[hydra]/hydra_doorlock
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_emotes
+    dest: ./resources/[hydra]/hydra_emotes
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_hud
+    dest: ./resources/[hydra]/hydra_hud
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_identity
+    dest: ./resources/[hydra]/hydra_identity
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_input
+    dest: ./resources/[hydra]/hydra_input
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_interact
+    dest: ./resources/[hydra]/hydra_interact
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_inventory
+    dest: ./resources/[hydra]/hydra_inventory
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_keybinds
+    dest: ./resources/[hydra]/hydra_keybinds
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_loadingscreen
+    dest: ./resources/[hydra]/hydra_loadingscreen
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_logs
+    dest: ./resources/[hydra]/hydra_logs
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_markers
+    dest: ./resources/[hydra]/hydra_markers
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_notify
+    dest: ./resources/[hydra]/hydra_notify
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_npc
+    dest: ./resources/[hydra]/hydra_npc
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_object
+    dest: ./resources/[hydra]/hydra_object
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_physics
+    dest: ./resources/[hydra]/hydra_physics
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_players
+    dest: ./resources/[hydra]/hydra_players
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_progressbar
+    dest: ./resources/[hydra]/hydra_progressbar
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_scenes
+    dest: ./resources/[hydra]/hydra_scenes
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_status
+    dest: ./resources/[hydra]/hydra_status
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_target
+    dest: ./resources/[hydra]/hydra_target
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_ui
+    dest: ./resources/[hydra]/hydra_ui
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_weather
+    dest: ./resources/[hydra]/hydra_weather
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_world
+    dest: ./resources/[hydra]/hydra_world
+
+  - action: move_path
+    src: ./tmp/hydra-framework/modules/hydra_zones
+    dest: ./resources/[hydra]/hydra_zones
+
+  # ── Keep SQL for reference ───────────────────────────────────
+  - action: move_path
+    src: ./tmp/hydra-framework/sql
+    dest: ./resources/[hydra]/sql
+
+  # ── Clean up temp download ───────────────────────────────────
+  - action: remove_path
+    path: ./tmp/hydra-framework
 
   # ── Import SQL schema ────────────────────────────────────────
   - action: connect_database
@@ -42,6 +203,10 @@ tasks:
       # ============================================
       # Hydra Framework — Generated by txAdmin Recipe
       # ============================================
+
+      # ---- Endpoints ----
+      endpoint_add_tcp "0.0.0.0:30120"
+      endpoint_add_udp "0.0.0.0:30120"
 
       # ---- Server Identity ----
       sv_hostname "Hydra Framework Server"
@@ -70,7 +235,6 @@ tasks:
       ensure mapmanager
       ensure spawnmanager
       ensure sessionmanager
-      ensure chat
       ensure hardcap
 
       # ---- Database Driver ----

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hydra Inventory</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="css/inventory.css">
+</head>
+<body>
+    <div id="inventory-root" class="hidden">
+        <div id="inventory-backdrop"></div>
+        <div id="inventory-container">
+            <!-- Left Panel: Player Inventory -->
+            <div class="inv-panel" id="player-panel">
+                <div class="inv-panel-header">
+                    <div class="inv-panel-title">
+                        <i class="fa-solid fa-box-open"></i>
+                        <span>Inventory</span>
+                    </div>
+                    <div class="inv-weight-bar">
+                        <div class="inv-weight-fill" id="player-weight-fill"></div>
+                        <span class="inv-weight-text" id="player-weight-text">0 / 120 kg</span>
+                    </div>
+                </div>
+                <!-- Money Row -->
+                <div class="inv-money-row" id="money-row">
+                    <div class="inv-money-item" data-type="cash">
+                        <i class="fa-solid fa-money-bill-wave"></i>
+                        <span id="money-cash">$0</span>
+                    </div>
+                    <div class="inv-money-item" data-type="bank">
+                        <i class="fa-solid fa-building-columns"></i>
+                        <span id="money-bank">$0</span>
+                    </div>
+                    <div class="inv-money-item" data-type="crypto">
+                        <i class="fa-brands fa-bitcoin"></i>
+                        <span id="money-crypto">0</span>
+                    </div>
+                </div>
+                <!-- Search & Categories -->
+                <div class="inv-toolbar">
+                    <div class="inv-search">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="player-search" placeholder="Search items..." autocomplete="off">
+                    </div>
+                    <div class="inv-categories" id="player-categories">
+                        <button class="inv-cat-btn active" data-cat="all">All</button>
+                        <button class="inv-cat-btn" data-cat="consumable">Consumable</button>
+                        <button class="inv-cat-btn" data-cat="weapon">Weapon</button>
+                        <button class="inv-cat-btn" data-cat="tool">Tool</button>
+                        <button class="inv-cat-btn" data-cat="material">Material</button>
+                        <button class="inv-cat-btn" data-cat="misc">Misc</button>
+                    </div>
+                </div>
+                <!-- Slots Grid -->
+                <div class="inv-grid-wrap">
+                    <div class="inv-grid" id="player-grid"></div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Secondary Inventory -->
+            <div class="inv-panel hidden" id="secondary-panel">
+                <div class="inv-panel-header">
+                    <div class="inv-panel-title">
+                        <i class="fa-solid fa-warehouse" id="secondary-icon"></i>
+                        <span id="secondary-label">Trunk</span>
+                    </div>
+                    <div class="inv-weight-bar">
+                        <div class="inv-weight-fill" id="secondary-weight-fill"></div>
+                        <span class="inv-weight-text" id="secondary-weight-text">0 / 50 kg</span>
+                    </div>
+                </div>
+                <div class="inv-toolbar">
+                    <div class="inv-search">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="secondary-search" placeholder="Search items..." autocomplete="off">
+                    </div>
+                </div>
+                <div class="inv-grid-wrap">
+                    <div class="inv-grid" id="secondary-grid"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Item Info Panel -->
+        <div id="item-info" class="hidden">
+            <div class="item-info-header">
+                <div class="item-info-img" id="info-img"></div>
+                <div class="item-info-details">
+                    <h3 id="info-name">Item Name</h3>
+                    <p id="info-desc">Item description goes here.</p>
+                    <div class="item-info-meta">
+                        <span class="info-meta-tag"><i class="fa-solid fa-weight-hanging"></i> <span id="info-weight">0g</span></span>
+                        <span class="info-meta-tag"><i class="fa-solid fa-tag"></i> <span id="info-category">General</span></span>
+                        <span class="info-meta-tag"><i class="fa-solid fa-layer-group"></i> x<span id="info-count">1</span></span>
+                    </div>
+                </div>
+            </div>
+            <div class="item-info-actions">
+                <button class="inv-action-btn use-btn" id="btn-use"><i class="fa-solid fa-hand"></i> Use</button>
+                <button class="inv-action-btn give-btn" id="btn-give"><i class="fa-solid fa-hand-holding"></i> Give</button>
+                <button class="inv-action-btn drop-btn" id="btn-drop"><i class="fa-solid fa-arrow-down"></i> Drop</button>
+            </div>
+        </div>
+
+        <!-- Right-click Context Menu -->
+        <div id="inv-context-menu" class="hidden">
+            <button class="inv-ctx-item" data-action="use"><i class="fa-solid fa-hand"></i> Use</button>
+            <button class="inv-ctx-item" data-action="give"><i class="fa-solid fa-hand-holding"></i> Give</button>
+            <button class="inv-ctx-item" data-action="drop"><i class="fa-solid fa-arrow-down"></i> Drop</button>
+            <button class="inv-ctx-item" data-action="split"><i class="fa-solid fa-scissors"></i> Split</button>
+        </div>
+
+        <!-- Split Dialog -->
+        <div id="split-dialog" class="hidden">
+            <div class="split-overlay"></div>
+            <div class="split-modal">
+                <h4>Split Item</h4>
+                <p class="split-label">Amount to split:</p>
+                <input type="number" id="split-input" min="1" value="1" autocomplete="off">
+                <div class="split-actions">
+                    <button class="inv-action-btn" id="split-cancel">Cancel</button>
+                    <button class="inv-action-btn use-btn" id="split-confirm">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/inventory.js"></script>
+</body>
+</html>

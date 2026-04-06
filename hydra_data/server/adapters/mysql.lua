@@ -16,7 +16,9 @@ local MySQL = Hydra.Data.Adapters
 --- @param params table|nil query parameters
 --- @return table|nil results
 function MySQL.Execute(query, params)
-    local ok, result = pcall(exports.oxmysql.query_async, query, params or {})
+    local ok, result = pcall(function()
+        return exports.oxmysql:query_async(query, params or {})
+    end)
     if not ok then
         Hydra.Utils.Log('error', 'MySQL Execute error: %s\nQuery: %s', tostring(result), query)
         return nil
@@ -29,7 +31,9 @@ end
 --- @param params table|nil
 --- @return any
 function MySQL.Scalar(query, params)
-    local ok, result = pcall(exports.oxmysql.scalar_async, query, params or {})
+    local ok, result = pcall(function()
+        return exports.oxmysql:scalar_async(query, params or {})
+    end)
     if not ok then
         Hydra.Utils.Log('error', 'MySQL Scalar error: %s', tostring(result))
         return nil
@@ -42,7 +46,9 @@ end
 --- @param params table|nil
 --- @return table|nil
 function MySQL.Single(query, params)
-    local ok, result = pcall(exports.oxmysql.single_async, query, params or {})
+    local ok, result = pcall(function()
+        return exports.oxmysql:single_async(query, params or {})
+    end)
     if not ok then
         Hydra.Utils.Log('error', 'MySQL Single error: %s', tostring(result))
         return nil
@@ -55,7 +61,9 @@ end
 --- @param params table|nil
 --- @return number|nil insertId
 function MySQL.Insert(query, params)
-    local ok, result = pcall(exports.oxmysql.insert_async, query, params or {})
+    local ok, result = pcall(function()
+        return exports.oxmysql:insert_async(query, params or {})
+    end)
     if not ok then
         Hydra.Utils.Log('error', 'MySQL Insert error: %s', tostring(result))
         return nil
@@ -68,7 +76,9 @@ end
 --- @param params table|nil
 --- @return number affected rows
 function MySQL.Update(query, params)
-    local ok, result = pcall(exports.oxmysql.update_async, query, params or {})
+    local ok, result = pcall(function()
+        return exports.oxmysql:update_async(query, params or {})
+    end)
     if not ok then
         Hydra.Utils.Log('error', 'MySQL Update error: %s', tostring(result))
         return 0
@@ -81,7 +91,9 @@ end
 --- @param params table|nil
 --- @return boolean success
 function MySQL.Prepare(query, params)
-    local ok, result = pcall(exports.oxmysql.prepare_async, query, params or {})
+    local ok, result = pcall(function()
+        return exports.oxmysql:prepare_async(query, params or {})
+    end)
     if not ok then
         Hydra.Utils.Log('error', 'MySQL Prepare error: %s', tostring(result))
         return false
@@ -98,7 +110,9 @@ function MySQL.Transaction(queries)
         statements[#statements + 1] = { query = q.query, values = q.params or {} }
     end
 
-    local ok, result = pcall(exports.oxmysql.transaction_async, statements)
+    local ok, result = pcall(function()
+        return exports.oxmysql:transaction_async(statements)
+    end)
     if not ok then
         Hydra.Utils.Log('error', 'MySQL Transaction error: %s', tostring(result))
         return false
@@ -149,10 +163,21 @@ function MySQL.CreateTable(tableName, columns, options)
             def = def .. ' NOT NULL'
         end
         if col.default ~= nil then
-            if type(col.default) == 'string' then
-                def = def .. string.format(" DEFAULT '%s'", col.default)
+            local defaultVal = col.default
+            if type(defaultVal) == 'string' then
+                -- SQL keywords that must NOT be quoted
+                local upper = defaultVal:upper()
+                if upper == 'CURRENT_TIMESTAMP'
+                    or upper:match('^CURRENT_TIMESTAMP%s+ON%s+UPDATE%s+CURRENT_TIMESTAMP$')
+                    or upper == 'NULL'
+                    or upper:match('^%d+$')
+                then
+                    def = def .. ' DEFAULT ' .. defaultVal
+                else
+                    def = def .. string.format(" DEFAULT '%s'", defaultVal)
+                end
             else
-                def = def .. string.format(' DEFAULT %s', tostring(col.default))
+                def = def .. string.format(' DEFAULT %s', tostring(defaultVal))
             end
         end
         if col.auto_increment then

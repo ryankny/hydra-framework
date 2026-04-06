@@ -51,6 +51,24 @@ for _, mod in ipairs({'events','resources','movement','godmode','weapons','entit
 end
 
 -- ---------------------------------------------------------------------------
+-- Register anticheat_bans collection with hydra_data
+-- ---------------------------------------------------------------------------
+CreateThread(function()
+    Wait(0)
+    pcall(function()
+        exports['hydra_data']:CreateCollection('anticheat_bans', {
+            { name = 'identifier',      type = 'VARCHAR(128)', index = true },
+            { name = 'all_identifiers', type = 'LONGTEXT' },
+            { name = 'reason',          type = 'VARCHAR(255)' },
+            { name = 'module',          type = 'VARCHAR(64)' },
+            { name = 'expires',         type = 'BIGINT', default = '0' },
+            { name = 'timestamp',       type = 'BIGINT' },
+            { name = 'playerName',      type = 'VARCHAR(64)' },
+        })
+    end)
+end)
+
+-- ---------------------------------------------------------------------------
 -- Identifier helpers
 -- ---------------------------------------------------------------------------
 
@@ -211,7 +229,7 @@ local function executeBan(src, reason, duration, module)
 
     -- Persist ban via hydra_data if available
     pcall(function()
-        exports['hydra_data']:Insert('anticheat_bans', {
+        exports['hydra_data']:Create('anticheat_bans', {
             identifier = identifier,
             all_identifiers = p.identifiers,
             reason = reason,
@@ -341,17 +359,49 @@ end
 -- Player lifecycle
 -- ---------------------------------------------------------------------------
 
+-- Player connecting — do NOT call deferrals.defer()/done() here,
+-- hydra_core already manages deferrals in its playerConnecting handler.
+-- This handler only initialises anticheat state and checks bans in-memory.
 AddEventHandler('playerConnecting', function(name, setKickReason, deferrals)
     local src = source
-    deferrals.defer()
-    Wait(0)
-    deferrals.update('Checking anti-cheat...')
 
-    if checkBanOnJoin(src, deferrals) then return end
+    -- Check in-memory bans (fast, no DB call)
+    local ids = getIdentifiers(src)
+    for _, id in ipairs(ids) do
+        if type(id) == 'string' then
+            local ban = bans[id]
+            if ban then
+                if ban.expires == 0 or ban.expires > os_time() then
+                    setKickReason(cfg.ban.message)
+                    CancelEvent()
+                    return
+                else
+                    bans[id] = nil
+                end
+            end
+        end
+    end
+
+    -- Check persisted bans
+    pcall(function()
+        for _, id in ipairs(ids) do
+            if type(id) == 'string' then
+                local results = exports['hydra_data']:Find('anticheat_bans', { identifier = id })
+                if results and #results > 0 then
+                    local ban = results[1]
+                    if ban.expires == 0 or ban.expires > os_time() then
+                        setKickReason(cfg.ban.message)
+                        CancelEvent()
+                        return
+                    end
+                end
+            end
+        end
+    end)
 
     -- Initialise player state
     players[src] = {
-        identifiers = getIdentifiers(src),
+        identifiers = ids,
         strikes = {},
         history = {},
         state = {
@@ -368,7 +418,6 @@ AddEventHandler('playerConnecting', function(name, setKickReason, deferrals)
         joinTime = os_time(),
     }
 
-    deferrals.done()
     log('DEBUG', 'Player passed anti-cheat check', src)
 end)
 

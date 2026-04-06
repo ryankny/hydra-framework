@@ -17,6 +17,21 @@ local vehicleInventories = {}
 local openInventories = {}
 
 -- =============================================
+-- COLLECTION REGISTRATION
+-- =============================================
+
+CreateThread(function()
+    Wait(0)
+    if Hydra.Data and Hydra.Data.Collections then
+        Hydra.Data.Collections.Create('vehicle_inventories', {
+            { name = 'plate', type = 'VARCHAR(32)', index = true },
+            { name = 'type',  type = 'VARCHAR(16)' },
+            { name = 'items', type = 'LONGTEXT' },
+        })
+    end
+end)
+
+-- =============================================
 -- HELPERS
 -- =============================================
 

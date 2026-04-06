@@ -17,6 +17,21 @@ local stashes = {}
 local openStashes = {}
 
 -- =============================================
+-- COLLECTION REGISTRATION
+-- =============================================
+
+CreateThread(function()
+    Wait(0)
+    if Hydra.Data and Hydra.Data.Collections then
+        Hydra.Data.Collections.Create('stash_inventories', {
+            { name = 'stash_id', type = 'VARCHAR(128)', index = true },
+            { name = 'items',    type = 'LONGTEXT' },
+            { name = 'owner',    type = 'VARCHAR(128)' },
+        })
+    end
+end)
+
+-- =============================================
 -- STASH MANAGEMENT
 -- =============================================
 

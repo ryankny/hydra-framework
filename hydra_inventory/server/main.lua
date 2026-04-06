@@ -74,6 +74,21 @@ local function getIdentifier(src)
 end
 
 -- ---------------------------------------------------------------------------
+-- COLLECTION REGISTRATION
+-- ---------------------------------------------------------------------------
+
+CreateThread(function()
+    Wait(0)
+    if Hydra.Data and Hydra.Data.Collections then
+        Hydra.Data.Collections.Create('inventories', {
+            { name = 'identifier', type = 'VARCHAR(128)', index = true },
+            { name = 'items',      type = 'LONGTEXT' },
+            { name = 'money',      type = 'LONGTEXT' },
+        })
+    end
+end)
+
+-- ---------------------------------------------------------------------------
 -- PERSISTENCE
 -- ---------------------------------------------------------------------------
 
@@ -94,13 +109,19 @@ local function loadInventory(identifier)
     end
 
     local ok, result = pcall(function()
-        return exports['hydra_data']:GetData('inventory', identifier)
+        return Hydra.Data.FindOne('inventories', { identifier = identifier })
     end)
 
     if ok and result then
-        if result.items then
-            -- Validate loaded items against the item registry
-            for slot, item in pairs(result.items) do
+        local loadedItems = result.items
+        local loadedMoney = result.money
+
+        -- Decode JSON strings if needed
+        if type(loadedItems) == 'string' then loadedItems = json.decode(loadedItems) end
+        if type(loadedMoney) == 'string' then loadedMoney = json.decode(loadedMoney) end
+
+        if loadedItems then
+            for slot, item in pairs(loadedItems) do
                 local slotNum = tonumber(slot) or slot
                 if item and item.name and Hydra.Inventory.ItemExists(item.name) then
                     items[slotNum] = {
@@ -113,10 +134,10 @@ local function loadInventory(identifier)
             end
         end
 
-        if result.money then
+        if loadedMoney then
             for _, mType in ipairs(cfg.money.types) do
-                if result.money[mType.name] ~= nil then
-                    money[mType.name] = tonumber(result.money[mType.name]) or 0
+                if loadedMoney[mType.name] ~= nil then
+                    money[mType.name] = tonumber(loadedMoney[mType.name]) or 0
                 end
             end
         end
@@ -134,11 +155,23 @@ local function saveInventory(identifier)
     local inv = inventories[identifier]
     if not inv then return end
 
+    local itemsJson = json.encode(inv.items)
+    local moneyJson = json.encode(inv.money)
+
     local ok, err = pcall(function()
-        exports['hydra_data']:SetData('inventory', identifier, {
-            items = inv.items,
-            money = inv.money,
-        })
+        local existing = Hydra.Data.FindOne('inventories', { identifier = identifier })
+        if existing then
+            Hydra.Data.Update('inventories', { identifier = identifier }, {
+                items = itemsJson,
+                money = moneyJson,
+            })
+        else
+            Hydra.Data.Create('inventories', {
+                identifier = identifier,
+                items = itemsJson,
+                money = moneyJson,
+            })
+        end
     end)
 
     if not ok then

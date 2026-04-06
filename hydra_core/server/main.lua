@@ -37,8 +37,30 @@ CreateThread(function()
         Hydra.Callbacks.Init()
     end
 
-    -- Step 4: Wait one frame for other resources to register modules
-    Wait(0)
+    -- Step 4: Wait for all resources to finish starting
+    -- Other hydra modules register via Hydra.Modules.Register() in their server scripts.
+    -- We need to wait until all ensure'd resources have started before loading modules.
+    local totalResources = GetNumResources()
+    local waited = 0
+    local maxWait = 30000 -- 30 second safety cap
+    while waited < maxWait do
+        local allStarted = true
+        for i = 0, totalResources - 1 do
+            local resName = GetResourceByFindIndex(i)
+            if resName and resName:find('^hydra_') and resName ~= GetCurrentResourceName() then
+                if GetResourceState(resName) == 'starting' then
+                    allStarted = false
+                    break
+                end
+            end
+        end
+        if allStarted then break end
+        Wait(500)
+        waited = waited + 500
+    end
+
+    -- Extra buffer for module registration calls to complete
+    Wait(1000)
 
     -- Step 5: Load modules
     Hydra.Utils.Log('info', 'Loading modules...')

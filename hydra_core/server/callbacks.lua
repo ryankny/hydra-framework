@@ -35,10 +35,11 @@ function Hydra.Callbacks.Init()
         end
 
         -- Execute callback with source and respond
+        local args = { ... }
         local ok, result = pcall(function()
             callback(src, function(...)
                 TriggerClientEvent('hydra:callback:response', src, callbackId, true, ...)
-            end, ...)
+            end, table.unpack(args))
         end)
 
         if not ok then

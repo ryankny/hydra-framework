@@ -94,10 +94,12 @@ function Hydra.Events._HandleServerEvent(fullName, src, ...)
         end
     end
 
+    -- Capture args for safe forwarding
+    local args = { ... }
+
     -- Payload size check (strings and tables)
     if Hydra.Security and Hydra.Config.Get('security.sanitize_inputs', true) then
         local maxPayload = Hydra.Config.Get('security.max_event_payload', 65536)
-        local args = { ... }
         for i, arg in ipairs(args) do
             if type(arg) == 'string' and #arg > maxPayload then
                 Hydra.Utils.Log('warn', 'Oversized string payload from player %d on event %s', src, fullName)
@@ -113,7 +115,7 @@ function Hydra.Events._HandleServerEvent(fullName, src, ...)
     end
 
     -- Execute handler
-    local ok, err = pcall(event.handler, src, ...)
+    local ok, err = pcall(event.handler, src, table.unpack(args))
     if not ok then
         Hydra.Utils.Log('error', 'Event handler error [%s]: %s', fullName, tostring(err))
     end
@@ -126,7 +128,8 @@ function Hydra.Events._HandleClientEvent(fullName, ...)
     local event = registeredEvents[fullName]
     if not event then return end
 
-    local ok, err = pcall(event.handler, ...)
+    local args = { ... }
+    local ok, err = pcall(event.handler, table.unpack(args))
     if not ok then
         Hydra.Utils.Log('error', 'Client event handler error [%s]: %s', fullName, tostring(err))
     end

@@ -190,10 +190,11 @@ end
 --- @param event string lifecycle hook name
 --- @vararg any
 function Hydra.Modules.Broadcast(event, ...)
+    local args = { ... }
     for _, name in ipairs(moduleOrder) do
         local module = modules[name]
         if module.state == STATE.READY and module[event] then
-            local ok, err = pcall(module[event], ...)
+            local ok, err = pcall(module[event], table.unpack(args))
             if not ok then
                 Hydra.Utils.Log('error', 'Module "%s" %s handler error: %s', name, event, tostring(err))
             end

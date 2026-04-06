@@ -122,6 +122,7 @@ tasks:
       ensure hydra_camera
       ensure hydra_interact
       ensure hydra_object
+      ensure hydra_updater
 
       # ---- Your Scripts Below ----
       # ensure my_custom_script

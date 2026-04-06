@@ -9,7 +9,18 @@ Hydra = Hydra or {}
 
 local hasSpawned = false
 
---- Spawn the player at the appropriate location
+-- If identity module handles spawning, skip the default spawn
+local identityHandledSpawn = false
+
+RegisterNetEvent('hydra:identity:characterLoaded')
+AddEventHandler('hydra:identity:characterLoaded', function()
+    identityHandledSpawn = true
+    hasSpawned = true
+    TriggerEvent('hydra:players:spawned')
+    TriggerServerEvent('hydra:players:spawned')
+end)
+
+--- Spawn the player at the appropriate location (only used when identity module is NOT active)
 --- @param data table player data with position
 local function spawnPlayer(data)
     if hasSpawned then return end
@@ -59,6 +70,9 @@ end
 
 --- Listen for player data load to trigger spawn
 AddEventHandler('hydra:players:ready', function(data)
+    -- Identity module already handled spawn — skip
+    if identityHandledSpawn then return end
+
     -- Screen fade out for clean transition
     DoScreenFadeOut(0)
 

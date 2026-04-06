@@ -117,7 +117,7 @@ AddEventHandler('hydra:identity:selectCharacter', function(characterId, spawnLoc
 
     playersSelecting[src] = nil
 
-    -- Notify client to spawn
+    -- Notify client: identity-specific data (appearance, clothing, spawn)
     TriggerClientEvent('hydra:identity:characterLoaded', src, {
         charinfo = playerData.charinfo,
         appearance = playerData.appearance,
@@ -126,6 +126,16 @@ AddEventHandler('hydra:identity:selectCharacter', function(characterId, spawnLoc
         job = playerData.job,
         position = playerData.position,
         group = playerData.group,
+    })
+
+    -- Fire hydra:players:loaded so the spawn system and HUD kick in
+    TriggerClientEvent('hydra:players:loaded', src, {
+        name = (playerData.charinfo.firstname or '') .. ' ' .. (playerData.charinfo.lastname or ''),
+        group = playerData.group,
+        accounts = playerData.accounts,
+        job = playerData.job,
+        position = playerData.position,
+        charinfo = playerData.charinfo,
     })
 
     -- Fire standard player loaded events

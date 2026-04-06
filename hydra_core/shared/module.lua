@@ -219,12 +219,32 @@ function Hydra.Use(name)
     return Hydra.Modules.Get(name)
 end
 
--- Exports
-exports('GetModule', Hydra.Modules.Get)
-exports('IsModuleLoaded', Hydra.Modules.IsLoaded)
+-- When running inside hydra_core, register exports.
+-- When running in other resources (via @hydra_core/shared/module.lua),
+-- redirect Register calls to hydra_core's export so modules register
+-- into hydra_core's central table, not a local copy.
+if GetCurrentResourceName() == 'hydra_core' then
+    exports('GetModule', Hydra.Modules.Get)
+    exports('IsModuleLoaded', Hydra.Modules.IsLoaded)
 
-if isServer then
-    exports('RegisterModule', Hydra.Modules.Register)
-    exports('UnregisterModule', Hydra.Modules.Unload)
-    exports('GetModules', Hydra.Modules.GetAll)
+    if isServer then
+        exports('RegisterModule', Hydra.Modules.Register)
+        exports('UnregisterModule', Hydra.Modules.Unload)
+        exports('GetModules', Hydra.Modules.GetAll)
+    end
+else
+    -- Proxy: redirect to hydra_core's central module registry
+    local _originalRegister = Hydra.Modules.Register
+    Hydra.Modules.Register = function(name, definition)
+        if isServer then
+            local ok, result = pcall(function()
+                return exports['hydra_core']:RegisterModule(name, definition)
+            end)
+            if ok then return result end
+            -- Fallback to local if export fails (hydra_core not started yet)
+            return _originalRegister(name, definition)
+        else
+            return _originalRegister(name, definition)
+        end
+    end
 end

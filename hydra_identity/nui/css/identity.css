@@ -56,8 +56,11 @@
 html, body {
     width: 100%;
     height: 100%;
+    margin: 0;
+    padding: 0;
     overflow: hidden;
-    background: transparent;
+    background: none !important;
+    background-color: transparent !important;
     font-family: var(--hydra-font);
     font-size: 16px;
     color: var(--hydra-text-primary);
@@ -72,14 +75,23 @@ html, body {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: transparent;
-    pointer-events: none;
+    display: none;
 }
 
-/* When active: subtle dark tint, allow clicks */
+/* When active: show the UI */
 #identity-root.active {
+    display: block;
+}
+
+/* Selection screen gets a full background since game is faded out */
+#screen-selection {
+    background: linear-gradient(135deg, #0F0F14 0%, #1a1a2e 50%, #0F0F14 100%);
+}
+
+/* Creation/appearance screens: semi-transparent to show 3D ped preview */
+#screen-creation,
+#screen-appearance {
     background: rgba(10, 10, 15, 0.3);
-    pointer-events: auto;
 }
 
 /* ---- Screens ---- */
@@ -92,8 +104,7 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: transparent;
-    pointer-events: auto;
+    background: none;
     transition: opacity var(--hydra-transition-slow), transform var(--hydra-transition-slow);
 }
 

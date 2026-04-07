@@ -27,39 +27,54 @@ function Hydra.Identity.Show(data)
     -- Extra buffer for NUI shutdown animation
     Wait(2000)
 
-    -- Ensure screen is faded out for clean transition
+    -- Freeze and hide player ped
+    local ped = PlayerPedId()
+    FreezeEntityPosition(ped, true)
+    SetEntityVisible(ped, false, false)
+
+    -- For selection screen: keep game screen black, NUI provides the full UI
+    -- The 3D ped preview only appears in creation/appearance screens
     if not IsScreenFadedOut() then
         DoScreenFadeOut(0)
         Wait(100)
     end
 
-    -- Move player to the preview location (interior)
-    local cfg = HydraIdentityConfig.camera.creation
-    local ped = PlayerPedId()
-    SetEntityCoords(ped, cfg.ped_coords.x, cfg.ped_coords.y, cfg.ped_coords.z, false, false, false, false)
-    FreezeEntityPosition(ped, true)
-    SetEntityVisible(ped, false, false)
-
-    -- Wait for collision to load at preview location
-    RequestCollisionAtCoord(cfg.ped_coords.x, cfg.ped_coords.y, cfg.ped_coords.z)
-    Wait(500)
-
-    -- Setup camera
-    Hydra.Identity.SetupCamera('selection')
-
-    -- Fade in so player can see the camera/NUI
-    DoScreenFadeIn(500)
-    Wait(500)
-
-    -- Enable NUI cursor — this captures all mouse input to the NUI
+    -- Enable NUI cursor
     SetNuiFocus(true, true)
 
-    -- Hide minimap and HUD while identity is active
+    -- Block all game input, hide HUD/radar while identity is active
     CreateThread(function()
         while isActive do
+            -- Disable all player controls so clicks don't attack/shoot
+            DisableControlAction(0, 24, true)   -- Attack
+            DisableControlAction(0, 25, true)   -- Aim
+            DisableControlAction(0, 37, true)   -- Select weapon
+            DisableControlAction(0, 44, true)   -- Cover
+            DisableControlAction(0, 47, true)   -- Detonate
+            DisableControlAction(0, 58, true)   -- Throw grenade
+            DisableControlAction(0, 69, true)   -- Vehicle attack
+            DisableControlAction(0, 70, true)   -- Vehicle attack 2
+            DisableControlAction(0, 92, true)   -- Vehicle passenger attack
+            DisableControlAction(0, 114, true)  -- Fly attack
+            DisableControlAction(0, 140, true)  -- Melee light
+            DisableControlAction(0, 141, true)  -- Melee heavy
+            DisableControlAction(0, 142, true)  -- Melee alternate
+            DisableControlAction(0, 257, true)  -- Attack 2
+            DisableControlAction(0, 263, true)  -- Melee attack 1
+            DisableControlAction(0, 264, true)  -- Melee attack 2
+            DisableControlAction(0, 30, true)   -- Move LR
+            DisableControlAction(0, 31, true)   -- Move UD
+            DisableControlAction(0, 21, true)   -- Sprint
+            DisableControlAction(0, 22, true)   -- Jump
+            DisableControlAction(0, 23, true)   -- Enter vehicle
+            DisableControlAction(0, 75, true)   -- Exit vehicle
+            DisableControlAction(0, 73, true)   -- Vehicle handbrake
+            DisableControlAction(0, 1, true)    -- Camera LR
+            DisableControlAction(0, 2, true)    -- Camera UD
+
             DisplayRadar(false)
             DisplayHud(false)
-            Wait(500)
+            Wait(0)
         end
         DisplayRadar(true)
         DisplayHud(true)
@@ -112,13 +127,21 @@ function Hydra.Identity.SwitchScreen(screen, data)
 
     if screen == 'creation' then
         creationData = {}
+        -- Move player to preview location and fade in the 3D scene
+        local cfg = HydraIdentityConfig.camera.creation
+        local ped = PlayerPedId()
+        SetEntityCoords(ped, cfg.ped_coords.x, cfg.ped_coords.y, cfg.ped_coords.z, false, false, false, false)
+        RequestCollisionAtCoord(cfg.ped_coords.x, cfg.ped_coords.y, cfg.ped_coords.z)
+        Wait(300)
         Hydra.Identity.SetupCamera('creation')
         Hydra.Identity.SpawnPreviewPed('male')
+        DoScreenFadeIn(500)
     elseif screen == 'appearance' then
         Hydra.Identity.SetupCamera('appearance')
     elseif screen == 'selection' then
         Hydra.Identity.DestroyPreviewPed()
-        Hydra.Identity.SetupCamera('selection')
+        Hydra.Identity.DestroyCamera()
+        DoScreenFadeOut(300)
     end
 
     SendNUIMessage({

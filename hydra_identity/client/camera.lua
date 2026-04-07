@@ -1,84 +1,83 @@
 --[[
     Hydra Identity - Camera Control
 
-    Interactive camera that orbits around the preview ped.
-    - Mouse scroll / NUI buttons: rotate ped left/right
-    - NUI buttons: move camera up/down
-    - Automatically adjusts for creation vs appearance screens
+    Interactive camera for character appearance preview.
+    - Mouse scroll: zoom in/out
+    - NUI buttons: rotate ped, move camera up/down
+    - Smooth transitions between zoom levels
 ]]
 
 Hydra = Hydra or {}
 Hydra.Identity = Hydra.Identity or {}
 
 local activeCam = nil
-local currentAngle = 0.0    -- horizontal orbit angle in degrees
-local currentHeight = 0.5   -- camera height offset from ped feet
-local currentScreen = nil
 local cameraActive = false
 
---- Get camera config for current screen
-local function getCamParams()
+-- Camera state
+local camDistance = 1.8
+local camHeight = 0.6       -- offset above ped feet
+local pedHeading = 180.0
+
+-- Limits
+local MIN_DISTANCE = 0.5
+local MAX_DISTANCE = 3.5
+local MIN_HEIGHT = -0.2
+local MAX_HEIGHT = 1.4
+
+--- Get the ped position for the camera to look at
+local function getPedOrigin()
     local cfg = HydraIdentityConfig.camera.creation
-    if currentScreen == 'appearance' then
-        return {
-            distance = cfg.appearance_distance or 0.9,
-            height = cfg.appearance_height or 0.65,
-            fov = cfg.appearance_fov or 28.0,
-        }
-    end
-    return {
-        distance = cfg.distance or 1.8,
-        height = currentHeight,
-        fov = cfg.fov or 35.0,
-    }
+    return vector3(cfg.ped_coords.x, cfg.ped_coords.y, cfg.ped_coords.z)
 end
 
---- Update camera position based on current angle and height
+--- Update camera position based on current state
 local function updateCamera()
     if not activeCam then return end
 
-    local cfg = HydraIdentityConfig.camera.creation
-    local pedCoords = vector3(cfg.ped_coords.x, cfg.ped_coords.y, cfg.ped_coords.z)
-    local params = getCamParams()
+    local origin = getPedOrigin()
 
-    -- Calculate camera position orbiting around the ped
-    local rad = math.rad(currentAngle)
-    local camX = pedCoords.x + math.sin(rad) * params.distance
-    local camY = pedCoords.y + math.cos(rad) * params.distance
-    local camZ = pedCoords.z + params.height
+    -- Camera orbits from the front of the ped (based on ped heading)
+    local rad = math.rad(pedHeading)
+    local camPos = vector3(
+        origin.x + math.sin(rad) * camDistance,
+        origin.y + math.cos(rad) * camDistance,
+        origin.z + camHeight
+    )
 
-    -- Look at ped upper body
-    local lookZ = pedCoords.z + 0.6
-    if currentScreen == 'appearance' then
-        lookZ = pedCoords.z + 0.65
-    end
+    -- Look at upper body
+    local lookAt = vector3(origin.x, origin.y, origin.z + 0.55)
 
-    SetCamCoord(activeCam, camX, camY, camZ)
-    PointCamAtCoord(activeCam, pedCoords.x, pedCoords.y, lookZ)
-    SetCamFov(activeCam, params.fov)
+    SetCamCoord(activeCam, camPos.x, camPos.y, camPos.z)
+    PointCamAtCoord(activeCam, lookAt.x, lookAt.y, lookAt.z)
+
+    -- Dynamic FOV based on distance (closer = narrower for less distortion)
+    local fov = 30.0 + (camDistance - MIN_DISTANCE) * 5.0
+    SetCamFov(activeCam, math.min(fov, 50.0))
 end
 
---- Setup camera for a given screen
+--- Setup camera for character preview
 --- @param screen string 'creation' | 'appearance'
 function Hydra.Identity.SetupCamera(screen)
     Hydra.Identity.DestroyCamera()
 
-    currentScreen = screen
-    local cfg = HydraIdentityConfig.camera.creation
+    if screen == 'appearance' then
+        -- Close-up for appearance
+        camDistance = 1.0
+        camHeight = 0.7
+    else
+        -- Full body for creation
+        camDistance = 1.8
+        camHeight = 0.6
+    end
 
-    -- Reset angle and height
-    currentAngle = 0.0
-    currentHeight = cfg.height_offset or 0.5
-
-    -- Create native camera
     activeCam = CreateCam('DEFAULT_SCRIPTED_CAMERA', true)
     updateCamera()
     SetCamActive(activeCam, true)
-    RenderScriptCams(true, true, 500, true, false)
+    RenderScriptCams(true, false, 0, false, false)
     cameraActive = true
 end
 
---- Destroy the active camera
+--- Destroy the active camera instantly
 function Hydra.Identity.DestroyCamera()
     cameraActive = false
     if activeCam then
@@ -89,8 +88,8 @@ function Hydra.Identity.DestroyCamera()
     end
 end
 
---- Rotate the ped (called from NUI buttons or scroll)
---- @param degrees number positive = clockwise, negative = counter-clockwise
+--- Rotate the ped
+--- @param degrees number
 function Hydra.Identity.RotatePed(degrees)
     local ped = Hydra.Identity.GetPreviewPed()
     if ped and DoesEntityExist(ped) then
@@ -99,51 +98,55 @@ function Hydra.Identity.RotatePed(degrees)
     end
 end
 
---- Move camera up/down (constrained)
---- @param delta number positive = up, negative = down
-function Hydra.Identity.MoveCamera(delta)
-    if currentScreen == 'appearance' then return end -- fixed for appearance
-
-    local cfg = HydraIdentityConfig.camera.creation
-    local minH = cfg.min_height or -0.3
-    local maxH = cfg.max_height or 1.2
-
-    currentHeight = math.max(minH, math.min(maxH, currentHeight + delta))
+--- Zoom camera in/out
+--- @param delta number positive = zoom in, negative = zoom out
+function Hydra.Identity.ZoomCamera(delta)
+    camDistance = math.max(MIN_DISTANCE, math.min(MAX_DISTANCE, camDistance - delta * 0.15))
     updateCamera()
 end
 
---- Get the active camera handle
---- @return number|nil
+--- Move camera up/down
+--- @param delta number positive = up, negative = down
+function Hydra.Identity.MoveCameraVertical(delta)
+    camHeight = math.max(MIN_HEIGHT, math.min(MAX_HEIGHT, camHeight + delta))
+    updateCamera()
+end
+
 function Hydra.Identity.GetCamera()
     return activeCam
 end
 
--- NUI callbacks for camera controls
+-- NUI callbacks
 RegisterNUICallback('identity:rotatePed', function(data, cb)
-    local dir = tonumber(data.direction) or 0
-    Hydra.Identity.RotatePed(dir)
+    Hydra.Identity.RotatePed(tonumber(data.direction) or 0)
     cb({ ok = true })
 end)
 
 RegisterNUICallback('identity:cameraUp', function(_, cb)
-    Hydra.Identity.MoveCamera(0.1)
+    Hydra.Identity.MoveCameraVertical(0.15)
     cb({ ok = true })
 end)
 
 RegisterNUICallback('identity:cameraDown', function(_, cb)
-    Hydra.Identity.MoveCamera(-0.1)
+    Hydra.Identity.MoveCameraVertical(-0.15)
     cb({ ok = true })
 end)
 
--- NUI scroll callback — JS sends wheel events through here
+RegisterNUICallback('identity:zoomIn', function(_, cb)
+    Hydra.Identity.ZoomCamera(1)
+    cb({ ok = true })
+end)
+
+RegisterNUICallback('identity:zoomOut', function(_, cb)
+    Hydra.Identity.ZoomCamera(-1)
+    cb({ ok = true })
+end)
+
+-- NUI scroll → zoom
 RegisterNUICallback('identity:scroll', function(data, cb)
     if cameraActive then
-        local dir = tonumber(data.delta) or 0
-        if dir > 0 then
-            Hydra.Identity.RotatePed(15.0)
-        elseif dir < 0 then
-            Hydra.Identity.RotatePed(-15.0)
-        end
+        local delta = tonumber(data.delta) or 0
+        Hydra.Identity.ZoomCamera(delta)
     end
     cb({ ok = true })
 end)

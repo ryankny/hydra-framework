@@ -199,25 +199,39 @@ AddEventHandler('hydra:identity:characterLoaded', function(data)
     end
     Wait(500)
 
-    -- Final camera reset
-    RenderScriptCams(false, false, 0, false, false)
-    DestroyAllCams(true)
+    -- Clear any leaked NUI state
     SetNuiFocusKeepInput(false)
 
     -- Restore ped visibility
     SetEntityAlpha(ped, 255, false)
     ResetEntityAlpha(ped)
 
-    -- Unfreeze
+    -- Use a temporary scripted camera at the correct position,
+    -- then smoothly hand off to gameplay camera.
+    -- This forces the gameplay camera to initialize at the right spot.
+    local tmpCam = CreateCam('DEFAULT_SCRIPTED_CAMERA', true)
+    local behindX = pos.x - math.sin(math.rad(pos.heading or 0.0)) * 3.0
+    local behindY = pos.y - math.cos(math.rad(pos.heading or 0.0)) * 3.0
+    SetCamCoord(tmpCam, behindX, behindY, pos.z + 1.0)
+    PointCamAtCoord(tmpCam, pos.x, pos.y, pos.z + 0.8)
+    SetCamFov(tmpCam, 50.0)
+    SetCamActive(tmpCam, true)
+    RenderScriptCams(true, false, 0, false, false)
+
+    -- Unfreeze ped
     FreezeEntityPosition(ped, false)
     ClearPedTasksImmediately(ped)
 
-    -- Force camera behind player
-    SetFollowPedCamViewMode(1)
-    SetGameplayCamRelativeHeading(0.0)
-    SetGameplayCamRelativePitch(0.0, 1.0)
-
+    -- Fade in with the temporary camera
     DoScreenFadeIn(1000)
+    Wait(1000)
+
+    -- Now hand off to gameplay camera smoothly
+    SetCamActive(tmpCam, false)
+    RenderScriptCams(false, true, 1000, false, false)
+    Wait(1000)
+    DestroyCam(tmpCam, true)
+    DestroyAllCams(true)
 end)
 
 --- Event: Character created, update list

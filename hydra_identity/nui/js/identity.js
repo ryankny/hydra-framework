@@ -113,10 +113,11 @@ const HydraIdentity = (() => {
         }
     });
 
-    // ---- Mouse wheel → rotate ped ----
+    // ---- Mouse wheel → zoom camera ----
     document.addEventListener('wheel', (e) => {
         if (currentScreen === 'creation' || currentScreen === 'appearance') {
-            callback('identity:scroll', { delta: e.deltaY > 0 ? 1 : -1 });
+            // Scroll up = zoom in (negative delta), scroll down = zoom out (positive delta)
+            callback('identity:scroll', { delta: e.deltaY > 0 ? -1 : 1 });
         }
     }, { passive: true });
 

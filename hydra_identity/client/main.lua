@@ -49,12 +49,9 @@ function Hydra.Identity.Show(data)
         },
     })
 
-    -- Show game cursor (backup for NUI cursor) + hide HUD
+    -- Hide HUD/radar while identity is active
     CreateThread(function()
         while isActive do
-            -- Render the game's native cursor as visual backup
-            SetMouseCursorActiveThisFrame()
-            SetMouseCursorSprite(1) -- normal arrow
             DisplayRadar(false)
             DisplayHud(false)
             HideHudAndRadarThisFrame()

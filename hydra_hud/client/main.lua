@@ -93,16 +93,26 @@ CreateThread(function()
     while true do
         Wait(0)
 
-        if hudVisible then
-            -- Hide default GTA HUD elements
-            HideHudComponentThisFrame(1)  -- Wanted stars
-            HideHudComponentThisFrame(2)  -- Weapon icon
-            HideHudComponentThisFrame(3)  -- Cash
-            HideHudComponentThisFrame(4)  -- MP Cash
-            HideHudComponentThisFrame(6)  -- Vehicle name
-            HideHudComponentThisFrame(7)  -- Area name
-            HideHudComponentThisFrame(8)  -- Vehicle class
-            HideHudComponentThisFrame(9)  -- Street name
-        end
+        -- Hide all native GTA HUD elements that Hydra replaces
+        HideHudComponentThisFrame(1)   -- Wanted stars
+        HideHudComponentThisFrame(2)   -- Weapon icon
+        HideHudComponentThisFrame(3)   -- Cash
+        HideHudComponentThisFrame(4)   -- MP Cash
+        HideHudComponentThisFrame(5)   -- MP message large
+        HideHudComponentThisFrame(6)   -- Vehicle name
+        HideHudComponentThisFrame(7)   -- Area name
+        HideHudComponentThisFrame(8)   -- Vehicle class
+        HideHudComponentThisFrame(9)   -- Street name
+        HideHudComponentThisFrame(10)  -- Help text
+        HideHudComponentThisFrame(11)  -- Floating help text
+        HideHudComponentThisFrame(12)  -- Money change
+        HideHudComponentThisFrame(13)  -- MP rank bar
+
+        -- Hide native health/armour arcs around minimap
+        -- The arcs only show when health < max or armour > 0 in the HUD's view.
+        -- SetPlayerHealthRechargeLimit makes the regen bar disappear.
+        -- SetPlayerHealthRechargeMultiplier(PlayerId(), 0.0) prevents the regen flash.
+        SetPlayerHealthRechargeLimit(PlayerId(), GetEntityMaxHealth(PlayerPedId()))
+        SetPlayerHealthRechargeMultiplier(PlayerId(), 0.0)
     end
 end)

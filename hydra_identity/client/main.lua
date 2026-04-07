@@ -245,6 +245,10 @@ AddEventHandler('hydra:identity:characterLoaded', function(data)
     FreezeEntityPosition(ped, false)
     ClearPedTasksImmediately(ped)
 
+    -- Enable PvP (FiveM defaults to friendly fire OFF)
+    NetworkSetFriendlyFireOption(true)
+    SetCanAttackFriendly(ped, true, true)
+
     -- GTA Online satellite zoom-in
     DoScreenFadeIn(0)
     SwitchInPlayer(ped)

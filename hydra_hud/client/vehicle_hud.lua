@@ -182,7 +182,7 @@ exports('GetSeatbelt', function() return seatbeltOn end)
 
 --- Vehicle HUD update loop
 CreateThread(function()
-    while not Hydra.IsReady() do Wait(200) end
+    while not Hydra.HUD.IsVisible() do Wait(500) end
 
     local vehConfig = HydraHUDConfig.vehicle or {}
     if not vehConfig.enabled then return end

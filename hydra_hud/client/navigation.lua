@@ -69,7 +69,8 @@ end
 
 --- Compass heading update (fast — runs every frame for smooth compass)
 CreateThread(function()
-    while not Hydra.IsReady() do Wait(200) end
+    -- Wait for HUD to become visible (not IsReady which may fail cross-resource)
+    while not Hydra.HUD.IsVisible() do Wait(500) end
 
     local navConfig = HydraHUDConfig.navigation or {}
     if not navConfig.enabled then return end
@@ -97,7 +98,7 @@ end)
 
 --- Street/zone/time update (slow — doesn't change often)
 CreateThread(function()
-    while not Hydra.IsReady() do Wait(200) end
+    while not Hydra.HUD.IsVisible() do Wait(500) end
 
     local navConfig = HydraHUDConfig.navigation or {}
     if not navConfig.enabled then return end

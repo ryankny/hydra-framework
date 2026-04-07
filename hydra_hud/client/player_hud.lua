@@ -65,7 +65,7 @@ end)
 
 --- Player HUD update loop
 CreateThread(function()
-    while not Hydra.IsReady() do Wait(200) end
+    Wait(2000) -- wait for resources to initialize
 
     playerConfig = HydraHUDConfig.player or {}
     if not playerConfig.enabled then return end

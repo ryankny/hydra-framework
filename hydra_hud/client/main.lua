@@ -88,7 +88,7 @@ end)
 
 --- Disable default GTA HUD elements that Hydra replaces
 CreateThread(function()
-    while not Hydra.IsReady() do Wait(100) end
+    while not Hydra.HUD.IsVisible() do Wait(500) end
 
     while true do
         Wait(0)

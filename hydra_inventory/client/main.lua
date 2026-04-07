@@ -260,35 +260,18 @@ end)
 -- KEYBIND REGISTRATION (TAB to open)
 -- =========================================================================
 
--- Register inventory keybind
-CreateThread(function()
-    Wait(2000)
-
-    local registered = false
-    pcall(function()
-        exports['hydra_keybinds']:Register('inventory_open', {
-            key = cfg.ui.openKey or 'TAB',
-            description = 'Open Inventory',
-            category = 'inventory',
-            module = 'hydra_inventory',
-            onPress = ToggleInventory,
-        })
-        registered = true
-    end)
-
-    if not registered then
-        RegisterCommand('hydra_inventory_open', function()
-            ToggleInventory()
-        end, false)
-        RegisterKeyMapping('hydra_inventory_open', 'Open Inventory', 'keyboard', 'TAB')
-    end
-end)
-
--- Disable weapon wheel every frame (Tab normally opens it)
+-- Inventory keybind — Tab to open/close
+-- Disables weapon wheel and listens for Tab press directly
 CreateThread(function()
     while true do
-        -- Block weapon wheel select
-        DisableControlAction(0, 37, true)   -- Weapon wheel (TAB)
+        -- Block weapon wheel
+        DisableControlAction(0, 37, true)
+
+        -- Detect Tab press (control 37 = weapon wheel / TAB)
+        if IsDisabledControlJustPressed(0, 37) then
+            ToggleInventory()
+        end
+
         Wait(0)
     end
 end)

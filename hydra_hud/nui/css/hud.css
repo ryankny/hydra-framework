@@ -1,225 +1,170 @@
 /* ============================================
    Hydra HUD - Player HUD Styles
+   Clean, minimal design that wraps around the minimap
    ============================================ */
 
 :root {
-    --hydra-primary: #6C5CE7;
-    --hydra-secondary: #00CEC9;
-    --hydra-success: #00B894;
-    --hydra-warning: #FDCB6E;
-    --hydra-danger: #FF7675;
-    --hydra-info: #74B9FF;
-    --hydra-bg-card: #1E1E2E;
-    --hydra-bg-elevated: #252536;
-    --hydra-text-primary: #FFFFFF;
-    --hydra-text-secondary: #A0A0B8;
-    --hydra-text-muted: #6C6C80;
-    --hydra-border: #2A2A3C;
-    --hydra-font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --hud-health: #e74c3c;
+    --hud-armor: #3498db;
+    --hud-hunger: #e67e22;
+    --hud-thirst: #00cec9;
+    --hud-oxygen: #6C5CE7;
+    --hud-cash: #2ecc71;
+    --hud-bank: #3498db;
+    --hud-font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
-*, *::before, *::after {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 html, body {
     width: 100%;
     height: 100%;
     overflow: hidden;
     background: transparent;
-    font-family: var(--hydra-font);
+    font-family: var(--hud-font);
     user-select: none;
     -webkit-font-smoothing: antialiased;
 }
 
-html {
-    pointer-events: none;
-}
+html { pointer-events: none; }
 
-/* ---- Player HUD Container ---- */
-/* Positioned above the minimap, not overlapping it */
+/* ============================================
+   PLAYER HUD — wraps below the minimap
+   Minimap is roughly: left 0-260px, bottom 0-195px
+   ============================================ */
+
 .hud-player {
     position: fixed;
-    bottom: 220px;
-    left: 20px;
+    bottom: 14px;
+    left: 270px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
     transition: opacity 400ms ease, transform 400ms ease;
 }
 
 .hud-player.hidden {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(10px);
     pointer-events: none;
 }
 
 /* ---- Vital Bars ---- */
 .player-vitals {
     display: flex;
-    flex-direction: column;
-    gap: 5px;
+    gap: 4px;
 }
 
 .vital-bar {
     display: flex;
     align-items: center;
-    gap: 8px;
-    transition: opacity 300ms ease, transform 300ms ease;
+    transition: opacity 300ms ease;
 }
 
 .vital-bar.hidden {
     opacity: 0;
-    height: 0;
-    margin: 0;
+    width: 0;
     overflow: hidden;
 }
 
 .vital-icon {
-    width: 16px;
-    height: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.vital-icon svg {
-    width: 14px;
-    height: 14px;
+    display: none; /* icons hidden — color of bar is enough */
 }
 
 .vital-track {
-    width: 140px;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 4px;
+    width: 48px;
+    height: 6px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 3px;
     overflow: hidden;
 }
 
 .vital-fill {
     height: 100%;
-    border-radius: 4px;
+    border-radius: 3px;
     transition: width 400ms cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
 }
 
-.vital-fill::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 30%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15));
-    border-radius: 4px;
-}
+/* Bright, distinct colors */
+.health-fill { background: var(--hud-health); }
+.armor-fill { background: var(--hud-armor); }
+.hunger-fill { background: var(--hud-hunger); }
+.thirst-fill { background: var(--hud-thirst); }
+.oxygen-fill { background: var(--hud-oxygen); }
 
-/* Vital colors */
-.health-fill { background: linear-gradient(90deg, #FF7675, #e74c3c); }
-.armor-fill { background: linear-gradient(90deg, #74B9FF, #0984e3); }
-.hunger-fill { background: linear-gradient(90deg, #FDCB6E, #e17055); }
-.thirst-fill { background: linear-gradient(90deg, #74B9FF, #00CEC9); }
-.oxygen-fill { background: linear-gradient(90deg, #a29bfe, #6C5CE7); }
-
-/* Low vital warning pulse */
 .vital-fill.critical {
     animation: vital-pulse 1s ease-in-out infinite;
 }
 
 @keyframes vital-pulse {
     0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    50% { opacity: 0.3; }
 }
 
-/* Vital icon colors */
-#icon-health { color: #FF7675; }
-#icon-armor { color: #74B9FF; }
-#icon-hunger { color: #FDCB6E; }
-#icon-thirst { color: #74B9FF; }
-#icon-oxygen { color: #a29bfe; }
-
-/* ---- Player Info (Money + Job) ---- */
+/* ---- Money — sits to the right of the vitals ---- */
 .player-info {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 6px 0;
+    gap: 12px;
 }
 
 .player-money {
     display: flex;
-    gap: 16px;
+    gap: 10px;
 }
 
 .money-item {
     display: flex;
-    flex-direction: column;
-    gap: 1px;
+    align-items: center;
+    gap: 4px;
 }
 
 .money-label {
-    font-size: 0.5625rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--hydra-text-muted);
 }
+
+.money-item.cash .money-label { color: var(--hud-cash); }
+.money-item.bank .money-label { color: var(--hud-bank); }
 
 .money-value {
-    font-size: 0.8125rem;
+    font-size: 0.8rem;
     font-weight: 700;
-    color: var(--hydra-text-primary);
-    transition: color 300ms ease;
+    color: #fff;
     font-variant-numeric: tabular-nums;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    transition: color 300ms ease;
 }
 
-.money-item.cash .money-value { color: var(--hydra-success); }
-.money-item.bank .money-value { color: var(--hydra-info); }
-
-/* Money change flash */
-.money-value.increase {
-    animation: money-flash-green 600ms ease;
-}
-.money-value.decrease {
-    animation: money-flash-red 600ms ease;
-}
+.money-value.increase { animation: money-flash-green 600ms ease; }
+.money-value.decrease { animation: money-flash-red 600ms ease; }
 
 @keyframes money-flash-green {
-    0% { color: #00ff88; transform: scale(1.15); }
+    0% { color: #2ecc71; transform: scale(1.1); }
     100% { transform: scale(1); }
 }
 @keyframes money-flash-red {
-    0% { color: #ff4444; transform: scale(1.15); }
+    0% { color: #e74c3c; transform: scale(1.1); }
     100% { transform: scale(1); }
 }
 
 /* Job display */
 .player-job {
-    padding-left: 16px;
-    border-left: 1px solid rgba(255,255,255,0.06);
+    padding-left: 10px;
+    border-left: 1px solid rgba(255,255,255,0.15);
 }
 
 .job-label {
-    font-size: 0.6875rem;
+    font-size: 0.7rem;
     font-weight: 500;
-    color: var(--hydra-text-secondary);
+    color: rgba(255,255,255,0.7);
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
 }
 
 /* ---- Animations ---- */
 @keyframes hud-slide-in {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.hud-player {
-    animation: hud-slide-in 500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }

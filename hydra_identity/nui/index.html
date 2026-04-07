@@ -124,14 +124,23 @@
                 </div>
 
                 <div class="appearance-controls">
-                    <div class="rotate-controls">
-                        <button class="btn-icon" id="btn-rotate-left" title="Rotate Left">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                    <div class="camera-controls">
+                        <button class="btn-icon" id="btn-cam-up" title="Camera Up">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6"/></svg>
                         </button>
-                        <button class="btn-icon" id="btn-rotate-right" title="Rotate Right">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                        <div class="rotate-controls">
+                            <button class="btn-icon" id="btn-rotate-left" title="Rotate Left">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                            </button>
+                            <button class="btn-icon" id="btn-rotate-right" title="Rotate Right">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                            </button>
+                        </div>
+                        <button class="btn-icon" id="btn-cam-down" title="Camera Down">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
                         </button>
                     </div>
+                    <p class="camera-hint">Scroll to rotate</p>
                     <button class="btn btn-primary" id="btn-finish">
                         Create Character
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
@@ -163,19 +172,6 @@
             <span id="error-toast-msg"></span>
         </div>
     </div>
-
-    <!-- Custom cursor since FiveM NUI cursor may not render -->
-    <div id="custom-cursor"></div>
-
-    <script>
-    (() => {
-        const cursor = document.getElementById('custom-cursor');
-        document.addEventListener('mousemove', (e) => {
-            cursor.style.left = e.clientX + 'px';
-            cursor.style.top = e.clientY + 'px';
-        });
-    })();
-    </script>
 
     <script src="js/identity.js"></script>
     <script src="js/selection.js"></script>

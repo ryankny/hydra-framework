@@ -20,10 +20,6 @@ function Hydra.Identity.Show(data)
     isActive = true
     currentScreen = 'selection'
 
-    -- Enable NUI focus and cursor IMMEDIATELY — no waiting
-    -- This is the most reliable way to get the cursor in FiveM
-    SetNuiFocus(true, true)
-
     -- Send NUI data
     SendNUIMessage({
         module = 'identity',
@@ -39,7 +35,7 @@ function Hydra.Identity.Show(data)
         },
     })
 
-    -- Handle game state in a thread
+    -- Everything else in a thread — SetNuiFocus is more reliable from thread context
     CreateThread(function()
         -- Hide and move the player ped
         local ped = PlayerPedId()
@@ -47,8 +43,16 @@ function Hydra.Identity.Show(data)
         SetEntityVisible(ped, false, false)
         SetEntityCoords(ped, 0.0, 0.0, -200.0, false, false, false, false)
 
-        -- Block all game input, hide minimap/HUD
+        -- Wait one frame then set focus — ensures we're in proper tick context
+        Wait(0)
+        SetNuiFocus(true, true)
+
+        -- Keep re-applying focus and blocking input every frame
         while isActive do
+            -- Re-assert focus in case anything resets it
+            if not IsNuiFocused() then
+                SetNuiFocus(true, true)
+            end
             DisableAllControlActions(0)
             DisplayRadar(false)
             DisplayHud(false)
@@ -98,18 +102,10 @@ function Hydra.Identity.SwitchScreen(screen, data)
         local cfg = HydraIdentityConfig.camera.creation
         local px, py, pz = cfg.ped_coords.x, cfg.ped_coords.y, cfg.ped_coords.z
 
-        -- Stream in the area properly so textures load
+        -- Stream in the area
         SetFocusPosAndVel(px, py, pz, 0.0, 0.0, 0.0)
         RequestCollisionAtCoord(px, py, pz)
-
-        -- Wait for collision to load
-        local streamTimeout = GetGameTimer() + 10000
-        while not HasCollisionLoadedAroundEntity(PlayerPedId()) and GetGameTimer() < streamTimeout do
-            RequestCollisionAtCoord(px, py, pz)
-            Wait(100)
-        end
-        -- Extra time for textures to stream in
-        Wait(1000)
+        Wait(2000)
 
         -- Spawn the preview ped and set up camera
         Hydra.Identity.SpawnPreviewPed('male')

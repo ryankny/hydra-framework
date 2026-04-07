@@ -432,6 +432,12 @@ const HydraAppearance = (() => {
             HydraIdentity.callback('identity:rotatePed', { direction: 15 });
         };
 
+        // Camera up/down
+        const camUp = document.getElementById('btn-cam-up');
+        const camDown = document.getElementById('btn-cam-down');
+        if (camUp) camUp.onclick = () => HydraIdentity.callback('identity:cameraUp');
+        if (camDown) camDown.onclick = () => HydraIdentity.callback('identity:cameraDown');
+
         // Finish creation
         document.getElementById('btn-finish').onclick = () => {
             HydraIdentity.callback('identity:finishCreation', {

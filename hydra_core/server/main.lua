@@ -67,9 +67,9 @@ CreateThread(function()
     -- Extra buffer for module registration calls to complete
     Wait(1000)
 
-    -- Step 5: Load modules
+    -- Step 5: Mark modules as ready
     Hydra.Utils.Log('info', 'Loading modules...')
-    local loaded = Hydra.Modules.LoadAll()
+    local loaded = Hydra.Modules.ReadyAll()
     Hydra.Utils.Log('info', 'Loaded %d modules', loaded)
 
     -- Step 6: Mark ready
@@ -119,22 +119,11 @@ AddEventHandler('playerConnecting', function(name, setKickReason, deferrals)
 end)
 
 --- Handle player fully joined
+--- Identity and Players modules listen for this event directly via RegisterNetEvent
 RegisterNetEvent('hydra:playerLoaded')
 AddEventHandler('hydra:playerLoaded', function()
     local src = source
-
-    -- Wait for framework to be fully ready (modules loaded) before processing
-    local timeout = GetGameTimer() + 30000
-    while not Hydra.IsReady() and GetGameTimer() < timeout do
-        Wait(100)
-    end
-
-    if not Hydra.IsReady() then
-        Hydra.Utils.Log('error', 'Framework not ready when player %d loaded — modules may not respond', src)
-    end
-
-    Hydra.Modules.Broadcast('onPlayerJoin', src)
-    Hydra.Utils.Log('debug', 'Player %d fully loaded', src)
+    Hydra.Utils.Log('info', 'Player %d triggered hydra:playerLoaded', src)
 end)
 
 --- Handle player dropping

@@ -11,74 +11,79 @@ Hydra.Identity = Hydra.Identity or {}
 -- Track which players are in character selection
 local playersSelecting = {}
 
---- Register as Hydra module
+--- Register as Hydra module (metadata only)
 Hydra.Modules.Register('identity', {
     label = 'Hydra Identity',
     version = '1.0.0',
     author = 'Hydra Framework',
     priority = 78,
     dependencies = { 'data', 'players' },
-
-    onLoad = function()
-        Hydra.Identity.CreateCollection()
-        Hydra.Utils.Log('info', 'Identity module loaded')
-    end,
-
-    onPlayerJoin = function(src)
-        -- Override default player load - show character selection instead
-        playersSelecting[src] = true
-
-        local identifier = Hydra.Players.GetIdentifier(src)
-        if not identifier then return end
-
-        local characters = Hydra.Identity.GetCharacters(identifier)
-        local maxChars = HydraIdentityConfig.multichar.max_characters or 5
-
-        -- Send character data to client for selection UI
-        TriggerClientEvent('hydra:identity:showSelection', src, {
-            characters = characters,
-            maxCharacters = maxChars,
-            spawnLocations = HydraIdentityConfig.spawn_locations,
-            canDelete = HydraIdentityConfig.multichar.allow_delete,
-        })
-    end,
-
-    onPlayerDrop = function(src, reason)
-        -- Save character data on disconnect
-        local playerData = Hydra.Players.GetPlayer(src)
-        if playerData and playerData.db_id then
-            -- Update playtime
-            local sessionTime = playerData.lastLogin and (os.time() - playerData.lastLogin) or 0
-
-            Hydra.Identity.SaveCharacter(playerData.db_id, {
-                accounts = playerData.accounts,
-                job = playerData.job,
-                position = playerData.position,
-                metadata = playerData.metadata,
-                inventory = playerData.inventory,
-                appearance = playerData.appearance,
-                clothing = playerData.clothing,
-                playtime = (playerData.playtime or 0) + sessionTime,
-            })
-        end
-
-        playersSelecting[src] = nil
-    end,
-
-    api = {
-        GetCharacters = Hydra.Identity.GetCharacters,
-        CreateCharacter = Hydra.Identity.CreateCharacter,
-        LoadCharacter = Hydra.Identity.LoadCharacter,
-        SaveCharacter = Hydra.Identity.SaveCharacter,
-        DeleteCharacter = Hydra.Identity.DeleteCharacter,
-        GetCharacterCount = Hydra.Identity.GetCharacterCount,
-    },
 })
+
+--- Initialize on framework ready
+Hydra.OnReady(function()
+    Hydra.Identity.CreateCollection()
+    Hydra.Utils.Log('info', 'Identity module loaded')
+end)
+
+--- Player loaded — show character selection
+RegisterNetEvent('hydra:playerLoaded')
+AddEventHandler('hydra:playerLoaded', function()
+    local src = source
+
+    -- Wait for framework to be ready (data layer initialized)
+    while not Hydra.IsReady() do Wait(100) end
+
+    playersSelecting[src] = true
+
+    -- Use export to call hydra_players (cross-resource)
+    local identifier = exports['hydra_players']:GetIdentifier(src)
+    if not identifier then
+        Hydra.Utils.Log('error', 'Identity: No identifier for player %d', src)
+        return
+    end
+
+    local characters = Hydra.Identity.GetCharacters(identifier)
+    local maxChars = HydraIdentityConfig.multichar.max_characters or 5
+
+    Hydra.Utils.Log('info', 'Showing character selection to player %d (%d characters)', src, #characters)
+
+    TriggerClientEvent('hydra:identity:showSelection', src, {
+        characters = characters,
+        maxCharacters = maxChars,
+        spawnLocations = HydraIdentityConfig.spawn_locations,
+        canDelete = HydraIdentityConfig.multichar.allow_delete,
+    })
+end)
+
+--- Player dropped — save character data
+AddEventHandler('playerDropped', function(reason)
+    local src = source
+
+    local ok, playerData = pcall(function() return exports['hydra_players']:GetPlayer(src) end)
+    if not ok then playerData = nil end
+    if playerData and playerData.db_id then
+        local sessionTime = playerData.lastLogin and (os.time() - playerData.lastLogin) or 0
+
+        Hydra.Identity.SaveCharacter(playerData.db_id, {
+            accounts = playerData.accounts,
+            job = playerData.job,
+            position = playerData.position,
+            metadata = playerData.metadata,
+            inventory = playerData.inventory,
+            appearance = playerData.appearance,
+            clothing = playerData.clothing,
+            playtime = (playerData.playtime or 0) + sessionTime,
+        })
+    end
+
+    playersSelecting[src] = nil
+end)
 
 --- Callback: Get characters for the requesting player
 Hydra.OnReady(function()
     Hydra.Callbacks.Register('hydra:identity:getCharacters', function(src, cb)
-        local identifier = Hydra.Players.GetIdentifier(src)
+        local identifier = exports['hydra_players']:GetIdentifier(src)
         if not identifier then cb(false) return end
 
         local characters = Hydra.Identity.GetCharacters(identifier)
@@ -113,7 +118,7 @@ AddEventHandler('hydra:identity:selectCharacter', function(characterId, spawnLoc
 
     -- Inject into hydra_players system
     -- We need to directly set the player in the active players cache
-    Hydra.Players._InjectPlayer(src, playerData)
+    exports['hydra_players']:InjectPlayer(src, playerData)
 
     playersSelecting[src] = nil
 
@@ -160,7 +165,7 @@ AddEventHandler('hydra:identity:createCharacter', function(data)
     if not Hydra.Security.ValidateSource(src) then return end
     if not playersSelecting[src] then return end
 
-    local identifier = Hydra.Players.GetIdentifier(src)
+    local identifier = exports['hydra_players']:GetIdentifier(src)
     if not identifier then
         TriggerClientEvent('hydra:identity:error', src, 'Could not verify your identity.')
         return
@@ -195,7 +200,7 @@ AddEventHandler('hydra:identity:deleteCharacter', function(characterId)
     local src = source
     if not Hydra.Security.ValidateSource(src) then return end
 
-    local identifier = Hydra.Players.GetIdentifier(src)
+    local identifier = exports['hydra_players']:GetIdentifier(src)
     if not identifier then return end
 
     local success = Hydra.Identity.DeleteCharacter(identifier, characterId)
@@ -216,7 +221,7 @@ AddEventHandler('hydra:identity:saveAppearance', function(characterId, appearanc
     local src = source
     if not Hydra.Security.ValidateSource(src) then return end
 
-    local identifier = Hydra.Players.GetIdentifier(src)
+    local identifier = exports['hydra_players']:GetIdentifier(src)
     if not identifier then return end
 
     Hydra.Identity.SaveCharacter(characterId, {

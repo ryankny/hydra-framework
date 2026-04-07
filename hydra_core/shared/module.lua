@@ -1,8 +1,9 @@
 --[[
     Hydra Framework - Module System
 
-    Provides the module registration and lifecycle API.
-    Modules are the building blocks of Hydra - everything is a module.
+    Simple module registry for tracking loaded modules.
+    Lifecycle hooks are handled directly by each module via events.
+    No functions are passed through exports — only metadata.
 ]]
 
 Hydra = Hydra or {}
@@ -11,93 +12,80 @@ Hydra.Modules = Hydra.Modules or {}
 local modules = {}
 local moduleOrder = {}
 local isServer = IsDuplicityVersion()
+local isCore = GetCurrentResourceName() == 'hydra_core'
 
---- Module lifecycle states
 local STATE = {
     REGISTERED  = 'registered',
-    LOADING     = 'loading',
     READY       = 'ready',
     ERROR       = 'error',
-    UNLOADED    = 'unloaded',
 }
 
---- Register a new module
---- @param name string unique module identifier
---- @param definition table module definition
---- @return boolean success
+--- Register a module (metadata only — no lifecycle hooks)
+--- @param name string
+--- @param definition table { label, version, author, priority, dependencies }
+--- @return boolean
 function Hydra.Modules.Register(name, definition)
-    if modules[name] then
-        Hydra.Utils.Log('warn', 'Module "%s" is already registered, skipping', name)
-        return false
+    definition = definition or {}
+
+    if isCore then
+        -- Store directly
+        if modules[name] then return true end
+        modules[name] = {
+            name = name,
+            label = definition.label or name,
+            version = definition.version or '1.0.0',
+            author = definition.author or 'Unknown',
+            dependencies = definition.dependencies or {},
+            priority = definition.priority or 50,
+            state = STATE.REGISTERED,
+        }
+        moduleOrder[#moduleOrder + 1] = name
+        table.sort(moduleOrder, function(a, b)
+            return (modules[a].priority or 50) > (modules[b].priority or 50)
+        end)
+    elseif isServer then
+        -- Send metadata to hydra_core via export
+        pcall(function()
+            exports['hydra_core']:RegisterModule(name, {
+                label = definition.label or name,
+                version = definition.version or '1.0.0',
+                author = definition.author or 'Unknown',
+                dependencies = definition.dependencies or {},
+                priority = definition.priority or 50,
+            })
+        end)
     end
 
-    local module = {
-        name = name,
-        label = definition.label or name,
-        version = definition.version or '1.0.0',
-        author = definition.author or 'Unknown',
-        dependencies = definition.dependencies or {},
-        state = STATE.REGISTERED,
-        priority = definition.priority or 50,
-
-        -- Lifecycle hooks
-        onLoad = definition.onLoad or nil,
-        onReady = definition.onReady or nil,
-        onUnload = definition.onUnload or nil,
-        onPlayerJoin = definition.onPlayerJoin or nil,
-        onPlayerDrop = definition.onPlayerDrop or nil,
-
-        -- Module's public API
-        api = definition.api or {},
-
-        -- Internal data
-        _data = {},
-        _startTime = nil,
-    }
-
-    modules[name] = module
-    moduleOrder[#moduleOrder + 1] = name
-
-    -- Sort by priority (higher = loads first)
-    table.sort(moduleOrder, function(a, b)
-        return (modules[a].priority or 50) > (modules[b].priority or 50)
-    end)
-
-    Hydra.Utils.Log('debug', 'Module registered: %s v%s', name, module.version)
+    Hydra.Utils.Log('debug', 'Module registered: %s v%s', name, definition.version or '1.0.0')
     return true
 end
 
---- Load a module (called during boot sequence)
+--- Resolve dependency name (handles hydra_ prefix)
+local function resolveDep(dep)
+    if modules[dep] then return dep end
+    if dep:sub(1, 6) == 'hydra_' then
+        local short = dep:sub(7)
+        if modules[short] then return short end
+    end
+    if modules['hydra_' .. dep] then return 'hydra_' .. dep end
+    return dep
+end
+
+--- Mark a module as ready (checks dependencies)
 --- @param name string
---- @return boolean success
-function Hydra.Modules.Load(name)
+--- @return boolean
+function Hydra.Modules.MarkReady(name)
     local module = modules[name]
-    if not module then
-        Hydra.Utils.Log('error', 'Cannot load unknown module: %s', name)
-        return false
-    end
+    if not module then return false end
+    if module.state == STATE.READY then return true end
 
-    if module.state == STATE.READY then
-        return true
-    end
-
-    -- Check dependencies (accept both 'data' and 'hydra_data' formats)
+    -- Check dependencies
     for _, dep in ipairs(module.dependencies) do
-        local depName = dep
-        -- Strip hydra_ prefix if present, to match registered short names
-        if not modules[depName] and depName:sub(1, 6) == 'hydra_' then
-            depName = depName:sub(7)
-        end
-        -- Also try adding prefix if short name not found
-        if not modules[depName] then
-            depName = 'hydra_' .. dep
-        end
-        -- Final check
-        if not modules[depName] or modules[depName].state ~= STATE.READY then
-            -- Skip 'core' dependency — hydra_core is the framework itself, always ready
-            if dep == 'hydra_core' or dep == 'core' then
-                -- Core is implicitly ready since we're running inside it
-            else
+        if dep == 'hydra_core' or dep == 'core' then
+            -- Always satisfied
+        else
+            local resolved = resolveDep(dep)
+            if not modules[resolved] or modules[resolved].state ~= STATE.READY then
                 Hydra.Utils.Log('error', 'Module "%s" requires "%s" which is not ready', name, dep)
                 module.state = STATE.ERROR
                 return false
@@ -105,87 +93,46 @@ function Hydra.Modules.Load(name)
         end
     end
 
-    module.state = STATE.LOADING
-    module._startTime = GetGameTimer()
-
-    -- Call onLoad
-    if module.onLoad then
-        local ok, err = pcall(module.onLoad)
-        if not ok then
-            module.state = STATE.ERROR
-            Hydra.Utils.Log('error', 'Module "%s" onLoad failed: %s', name, tostring(err))
-            return false
-        end
-    end
-
     module.state = STATE.READY
-    local elapsed = GetGameTimer() - module._startTime
-    Hydra.Utils.Log('info', 'Module loaded: %s v%s (%dms)', name, module.version, elapsed)
-
+    Hydra.Utils.Log('info', 'Module ready: %s v%s', name, module.version)
     return true
 end
 
---- Load all registered modules in priority order
---- @return number loaded count
-function Hydra.Modules.LoadAll()
-    local loaded = 0
+--- Mark all registered modules as ready (in priority order)
+--- @return number count of ready modules
+function Hydra.Modules.ReadyAll()
+    local count = 0
     for _, name in ipairs(moduleOrder) do
-        if Hydra.Modules.Load(name) then
-            loaded = loaded + 1
+        if Hydra.Modules.MarkReady(name) then
+            count = count + 1
         end
     end
-
-    -- Fire onReady for all loaded modules
-    for _, name in ipairs(moduleOrder) do
-        local module = modules[name]
-        if module.state == STATE.READY and module.onReady then
-            local ok, err = pcall(module.onReady)
-            if not ok then
-                Hydra.Utils.Log('error', 'Module "%s" onReady failed: %s', name, tostring(err))
-            end
-        end
-    end
-
-    return loaded
+    return count
 end
 
---- Get a module's public API
---- @param name string
---- @return table|nil
-function Hydra.Modules.Get(name)
-    local module = modules[name]
-    if not module or module.state ~= STATE.READY then
-        return nil
-    end
-    return module.api
-end
-
---- Check if a module is loaded
+--- Check if a module is loaded/ready
 --- @param name string
 --- @return boolean
 function Hydra.Modules.IsLoaded(name)
+    -- Check local table first (works in hydra_core)
     local module = modules[name]
-    return module ~= nil and module.state == STATE.READY
-end
+    if module and module.state == STATE.READY then return true end
+    local alt = name:sub(1, 6) == 'hydra_' and name:sub(7) or ('hydra_' .. name)
+    local altMod = modules[alt]
+    if altMod and altMod.state == STATE.READY then return true end
 
---- Unload a module
---- @param name string
---- @return boolean
-function Hydra.Modules.Unload(name)
-    local module = modules[name]
-    if not module then return false end
-
-    if module.onUnload then
-        pcall(module.onUnload)
+    -- If not in hydra_core, ask hydra_core via export
+    if not isCore and isServer then
+        local ok, result = pcall(function()
+            return exports['hydra_core']:IsModuleLoaded(name)
+        end)
+        if ok then return result end
     end
 
-    module.state = STATE.UNLOADED
-    Hydra.Utils.Log('info', 'Module unloaded: %s', name)
-    return true
+    return false
 end
 
 --- Get all module statuses
---- @return table
 function Hydra.Modules.GetAll()
     local list = {}
     for _, name in ipairs(moduleOrder) do
@@ -201,65 +148,26 @@ function Hydra.Modules.GetAll()
     return list
 end
 
---- Broadcast a lifecycle event to all ready modules
---- @param event string lifecycle hook name
---- @vararg any
+--- Get a module by name
+function Hydra.Modules.Get(name)
+    return modules[name] or modules[resolveDep(name)]
+end
+
+--- Broadcast is now a simple event trigger
 function Hydra.Modules.Broadcast(event, ...)
-    local args = { ... }
-    for _, name in ipairs(moduleOrder) do
-        local module = modules[name]
-        if module.state == STATE.READY and module[event] then
-            local ok, err = pcall(module[event], table.unpack(args))
-            if not ok then
-                Hydra.Utils.Log('error', 'Module "%s" %s handler error: %s', name, event, tostring(err))
-            end
-        end
-    end
+    TriggerEvent('hydra:' .. event, ...)
 end
 
---- Get internal module data (for the module itself)
---- @param name string
---- @return table
-function Hydra.Modules.GetData(name)
-    if modules[name] then
-        return modules[name]._data
-    end
-    return {}
-end
-
---- Shorthand: Get module API (alias)
---- @param name string
---- @return table|nil
-function Hydra.Use(name)
-    return Hydra.Modules.Get(name)
-end
-
--- When running inside hydra_core, register exports.
--- When running in other resources (via @hydra_core/shared/module.lua),
--- redirect Register calls to hydra_core's export so modules register
--- into hydra_core's central table, not a local copy.
-if GetCurrentResourceName() == 'hydra_core' then
+-- Exports (hydra_core only)
+if isCore then
     exports('GetModule', Hydra.Modules.Get)
     exports('IsModuleLoaded', Hydra.Modules.IsLoaded)
 
     if isServer then
-        exports('RegisterModule', Hydra.Modules.Register)
-        exports('UnregisterModule', Hydra.Modules.Unload)
+        exports('RegisterModule', function(name, metadata)
+            Hydra.Modules.Register(name, metadata)
+            return true
+        end)
         exports('GetModules', Hydra.Modules.GetAll)
-    end
-else
-    -- Proxy: redirect to hydra_core's central module registry
-    local _originalRegister = Hydra.Modules.Register
-    Hydra.Modules.Register = function(name, definition)
-        if isServer then
-            local ok, result = pcall(function()
-                return exports['hydra_core']:RegisterModule(name, definition)
-            end)
-            if ok then return result end
-            -- Fallback to local if export fails (hydra_core not started yet)
-            return _originalRegister(name, definition)
-        else
-            return _originalRegister(name, definition)
-        end
     end
 end

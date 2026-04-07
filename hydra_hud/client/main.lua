@@ -44,9 +44,10 @@ end
 
 --- NUI ready
 RegisterNUICallback('hydra:hud:ready', function(_, cb)
-    -- Send initial config
+    -- Send initial config with visibility state
     Hydra.HUD.Send('init', {
         config = HydraHUDConfig,
+        visible = hudVisible,
     })
     cb({ success = true })
 end)

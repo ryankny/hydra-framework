@@ -7,66 +7,30 @@
 Hydra = Hydra or {}
 Hydra.Data = Hydra.Data or {}
 
---- Register as Hydra module
+--- Register as Hydra module (metadata only)
 Hydra.Modules.Register('data', {
     label = 'Hydra Data Layer',
     version = '1.0.0',
     author = 'Hydra Framework',
-    priority = 90, -- Load early, other modules depend on data
-
-    onLoad = function()
-        -- Load data config (ConfigManager is server-only in hydra_core, use Config.Get or defaults)
-        local config = {
-            adapter = Hydra.Config and Hydra.Config.Get('modules.data.adapter', 'mysql') or 'mysql',
-            cache = Hydra.Config and Hydra.Config.Get('modules.data.cache', { enabled = true, default_ttl = 300, max_entries = 10000 }) or { enabled = true, default_ttl = 300, max_entries = 10000 },
-            subscriptions = { enabled = true },
-            auto_migrate = Hydra.Config and Hydra.Config.Get('modules.data.auto_migrate', true) or true,
-            query = { max_results = 1000, default_page_size = 50 },
-        }
-
-        -- Initialize cache
-        if config.cache and config.cache.enabled ~= false then
-            Hydra.Data.Cache.Init(config.cache)
-        end
-
-        Hydra.Utils.Log('info', 'Data layer initialized (adapter=%s, cache=%s)',
-            config.adapter or 'mysql',
-            config.cache and config.cache.enabled ~= false and 'on' or 'off')
-    end,
-
-    onPlayerDrop = function(src)
-        -- Clean up player subscriptions
-        Hydra.Data.Subscriptions.CleanupPlayer(src)
-    end,
-
-    api = {
-        -- CRUD
-        Create = function(...) return Hydra.Data.Create(...) end,
-        Read = function(...) return Hydra.Data.FindOne(...) end,
-        Update = function(...) return Hydra.Data.Update(...) end,
-        Delete = function(...) return Hydra.Data.Delete(...) end,
-        Find = function(...) return Hydra.Data.Find(...) end,
-        FindOne = function(...) return Hydra.Data.FindOne(...) end,
-        Count = function(...) return Hydra.Data.Count(...) end,
-
-        -- Batch
-        BulkCreate = function(...) return Hydra.Data.BulkCreate(...) end,
-        BulkUpdate = function(...) return Hydra.Data.BulkUpdate(...) end,
-
-        -- Collections
-        CreateCollection = function(...) return Hydra.Data.Collections.Create(...) end,
-        CollectionExists = function(...) return Hydra.Data.Collections.Exists(...) end,
-
-        -- Cache
-        CacheGet = function(...) return Hydra.Data.Cache.Get(...) end,
-        CacheSet = function(...) return Hydra.Data.Cache.Set(...) end,
-        CacheInvalidate = function(...) return Hydra.Data.Cache.Invalidate(...) end,
-
-        -- Subscriptions
-        Subscribe = function(...) return Hydra.Data.Subscriptions.Subscribe(...) end,
-        Unsubscribe = function(...) return Hydra.Data.Subscriptions.Unsubscribe(...) end,
-    },
+    priority = 90,
 })
+
+--- Initialize data layer immediately (no need to wait for framework ready — data IS the foundation)
+CreateThread(function()
+    Wait(100) -- brief wait for oxmysql to be ready
+
+    local config = {
+        adapter = 'mysql',
+        cache = { enabled = true, default_ttl = 300, max_entries = 10000 },
+        auto_migrate = true,
+    }
+
+    if Hydra.Data.Cache and Hydra.Data.Cache.Init then
+        Hydra.Data.Cache.Init(config.cache)
+    end
+
+    Hydra.Utils.Log('info', 'Data layer initialized (adapter=%s, cache=on)', config.adapter)
+end)
 
 -- Server exports
 exports('Create', function(...) return Hydra.Data.Create(...) end)

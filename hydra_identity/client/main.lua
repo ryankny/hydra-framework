@@ -20,19 +20,19 @@ function Hydra.Identity.Show(data)
     isActive = true
     currentScreen = 'selection'
 
-    -- Make sure screen is faded IN — faded screen kills cursor rendering
+    -- Make sure screen is faded IN
     if IsScreenFadedOut() or IsScreenFadingOut() then
         DoScreenFadeIn(0)
     end
-
-    -- Set NUI focus FIRST, synchronously, before anything else
-    SetNuiFocus(true, true)
 
     -- Hide and move the player ped
     local ped = PlayerPedId()
     FreezeEntityPosition(ped, true)
     SetEntityVisible(ped, false, false)
     SetEntityCoords(ped, 0.0, 0.0, -200.0, false, false, false, false)
+
+    -- NUI focus for mouse/keyboard input (NUI cursor doesn't render but clicks work)
+    SetNuiFocus(true, true)
 
     -- Send NUI data
     SendNUIMessage({
@@ -49,16 +49,15 @@ function Hydra.Identity.Show(data)
         },
     })
 
-    -- Hide radar/HUD in a thread
+    -- Show game cursor (backup for NUI cursor) + hide HUD
     CreateThread(function()
         while isActive do
+            -- Render the game's native cursor as visual backup
+            SetMouseCursorActiveThisFrame()
+            SetMouseCursorSprite(1) -- normal arrow
             DisplayRadar(false)
             DisplayHud(false)
             HideHudAndRadarThisFrame()
-            -- Re-assert focus every frame in case something resets it
-            if not IsNuiFocused() then
-                SetNuiFocus(true, true)
-            end
             Wait(0)
         end
         DisplayRadar(true)

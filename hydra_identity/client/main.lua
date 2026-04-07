@@ -201,37 +201,31 @@ AddEventHandler('hydra:identity:characterLoaded', function(data)
 
     -- Clear any leaked NUI state
     SetNuiFocusKeepInput(false)
+    RenderScriptCams(false, false, 0, false, false)
+    DestroyAllCams(true)
 
     -- Restore ped visibility
     SetEntityAlpha(ped, 255, false)
     ResetEntityAlpha(ped)
 
-    -- Use a temporary scripted camera at the correct position,
-    -- then smoothly hand off to gameplay camera.
-    -- This forces the gameplay camera to initialize at the right spot.
-    local tmpCam = CreateCam('DEFAULT_SCRIPTED_CAMERA', true)
-    local behindX = pos.x - math.sin(math.rad(pos.heading or 0.0)) * 3.0
-    local behindY = pos.y - math.cos(math.rad(pos.heading or 0.0)) * 3.0
-    SetCamCoord(tmpCam, behindX, behindY, pos.z + 1.0)
-    PointCamAtCoord(tmpCam, pos.x, pos.y, pos.z + 0.8)
-    SetCamFov(tmpCam, 50.0)
-    SetCamActive(tmpCam, true)
-    RenderScriptCams(true, false, 0, false, false)
-
-    -- Unfreeze ped
+    -- Unfreeze
     FreezeEntityPosition(ped, false)
     ClearPedTasksImmediately(ped)
 
-    -- Fade in with the temporary camera
-    DoScreenFadeIn(1000)
-    Wait(1000)
+    -- Force the gameplay camera to reset by hammering it every frame
+    -- This is needed because SetPlayerModel corrupts the camera's internal state
+    local heading = pos.heading or 0.0
+    CreateThread(function()
+        local endTime = GetGameTimer() + 3000
+        while GetGameTimer() < endTime do
+            SetFollowPedCamViewMode(1)
+            SetGameplayCamRelativeHeading(0.0)
+            SetGameplayCamRelativePitch(0.0, 1.0)
+            Wait(0)
+        end
+    end)
 
-    -- Now hand off to gameplay camera smoothly
-    SetCamActive(tmpCam, false)
-    RenderScriptCams(false, true, 1000, false, false)
-    Wait(1000)
-    DestroyCam(tmpCam, true)
-    DestroyAllCams(true)
+    DoScreenFadeIn(1000)
 end)
 
 --- Event: Character created, update list

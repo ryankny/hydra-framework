@@ -123,12 +123,12 @@ RegisterNUICallback('identity:rotatePed', function(data, cb)
 end)
 
 RegisterNUICallback('identity:cameraUp', function(_, cb)
-    Hydra.Identity.MoveCameraVertical(0.15)
+    Hydra.Identity.MoveCameraVertical(0.05)
     cb({ ok = true })
 end)
 
 RegisterNUICallback('identity:cameraDown', function(_, cb)
-    Hydra.Identity.MoveCameraVertical(-0.15)
+    Hydra.Identity.MoveCameraVertical(-0.05)
     cb({ ok = true })
 end)
 

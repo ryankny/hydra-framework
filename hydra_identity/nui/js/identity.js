@@ -115,11 +115,56 @@ const HydraIdentity = (() => {
 
     // ---- Mouse wheel → zoom camera ----
     document.addEventListener('wheel', (e) => {
-        if (currentScreen === 'creation' || currentScreen === 'appearance') {
-            // Scroll up = zoom in (negative delta), scroll down = zoom out (positive delta)
+        if (currentScreen === 'appearance') {
             callback('identity:scroll', { delta: e.deltaY > 0 ? -1 : 1 });
         }
     }, { passive: true });
+
+    // ---- Keyboard controls for appearance camera ----
+    const heldKeys = {};
+    let keyLoopRunning = false;
+
+    document.addEventListener('keydown', (e) => {
+        if (currentScreen !== 'appearance') return;
+        const key = e.key.toLowerCase();
+        if (['arrowleft', 'arrowright', 'w', 's', 'a', 'd'].includes(key)) {
+            e.preventDefault();
+            if (!heldKeys[key]) {
+                heldKeys[key] = true;
+                if (!keyLoopRunning) startKeyLoop();
+            }
+        }
+    });
+
+    document.addEventListener('keyup', (e) => {
+        delete heldKeys[e.key.toLowerCase()];
+    });
+
+    function startKeyLoop() {
+        keyLoopRunning = true;
+        function tick() {
+            if (currentScreen !== 'appearance' || Object.keys(heldKeys).length === 0) {
+                keyLoopRunning = false;
+                return;
+            }
+            // Arrow left/right or A/D = rotate ped
+            if (heldKeys['arrowleft'] || heldKeys['a']) {
+                callback('identity:rotatePed', { direction: -5 });
+            }
+            if (heldKeys['arrowright'] || heldKeys['d']) {
+                callback('identity:rotatePed', { direction: 5 });
+            }
+            // W/S = pan camera up/down
+            if (heldKeys['w']) {
+                callback('identity:cameraUp');
+            }
+            if (heldKeys['s']) {
+                callback('identity:cameraDown');
+            }
+            requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+    }
 
     // ---- Public API ----
     return {

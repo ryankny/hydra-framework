@@ -71,7 +71,6 @@ function Hydra.Identity.Hide()
 
     -- Clean up streaming
     ClearFocus()
-    NewLoadSceneStop()
 
     -- Destroy preview ped and camera
     Hydra.Identity.DestroyPreviewPed()
@@ -102,13 +101,15 @@ function Hydra.Identity.SwitchScreen(screen, data)
         -- Stream in the area properly so textures load
         SetFocusPosAndVel(px, py, pz, 0.0, 0.0, 0.0)
         RequestCollisionAtCoord(px, py, pz)
-        NewLoadSceneStart(px, py, pz, px, py, pz, 50.0, 0)
 
-        -- Wait for the area to fully stream in
+        -- Wait for collision to load
         local streamTimeout = GetGameTimer() + 10000
-        while not NewLoadSceneHasLoaded() and GetGameTimer() < streamTimeout do
+        while not HasCollisionLoadedAroundEntity(PlayerPedId()) and GetGameTimer() < streamTimeout do
+            RequestCollisionAtCoord(px, py, pz)
             Wait(100)
         end
+        -- Extra time for textures to stream in
+        Wait(1000)
 
         -- Spawn the preview ped and set up camera
         Hydra.Identity.SpawnPreviewPed('male')
@@ -120,7 +121,6 @@ function Hydra.Identity.SwitchScreen(screen, data)
         Hydra.Identity.DestroyPreviewPed()
         Hydra.Identity.DestroyCamera()
         ClearFocus()
-        NewLoadSceneStop()
         DoScreenFadeOut(300)
     end
 

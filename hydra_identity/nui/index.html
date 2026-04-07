@@ -164,6 +164,19 @@
         </div>
     </div>
 
+    <!-- Custom cursor since FiveM NUI cursor may not render -->
+    <div id="custom-cursor"></div>
+
+    <script>
+    (() => {
+        const cursor = document.getElementById('custom-cursor');
+        document.addEventListener('mousemove', (e) => {
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+        });
+    })();
+    </script>
+
     <script src="js/identity.js"></script>
     <script src="js/selection.js"></script>
     <script src="js/creation.js"></script>

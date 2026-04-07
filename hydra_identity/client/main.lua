@@ -51,27 +51,16 @@ function Hydra.Identity.Show(data)
     DoScreenFadeIn(500)
     Wait(500)
 
-    -- Enable NUI cursor and keep focus
+    -- Enable NUI cursor — this captures all mouse input to the NUI
     SetNuiFocus(true, true)
-    SetNuiFocusKeepInput(false)
 
-    -- Disable game controls while identity is active
+    -- Hide minimap and HUD while identity is active
     CreateThread(function()
         while isActive do
-            DisableAllControlActions(0)
-            -- Re-enable mouse for NUI
-            EnableControlAction(0, 1, true)  -- LookLeftRight
-            EnableControlAction(0, 2, true)  -- LookUpDown
-            EnableControlAction(0, 330, true) -- Mouse button
-            EnableControlAction(0, 331, true) -- Mouse button 2
-
-            -- Hide minimap and HUD
             DisplayRadar(false)
             DisplayHud(false)
-
-            Wait(0)
+            Wait(500)
         end
-        -- Restore when done
         DisplayRadar(true)
         DisplayHud(true)
     end)

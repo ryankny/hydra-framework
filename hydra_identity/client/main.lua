@@ -20,17 +20,11 @@ function Hydra.Identity.Show(data)
     isActive = true
     currentScreen = 'selection'
 
-    -- Freeze, hide, and move player ped away
-    local ped = PlayerPedId()
-    FreezeEntityPosition(ped, true)
-    SetEntityVisible(ped, false, false)
-    SetEntityCoords(ped, 0.0, 0.0, -200.0, false, false, false, false)
+    -- Enable NUI focus and cursor IMMEDIATELY — no waiting
+    -- This is the most reliable way to get the cursor in FiveM
+    SetNuiFocus(true, true)
 
-    -- Fade game screen to black (selection uses NUI as full background)
-    DoScreenFadeOut(0)
-    Wait(200)
-
-    -- 1) Send NUI message to make the UI visible (adds .active class)
+    -- Send NUI data
     SendNUIMessage({
         module = 'identity',
         action = 'show',
@@ -45,20 +39,23 @@ function Hydra.Identity.Show(data)
         },
     })
 
-    -- 2) Wait for NUI to render
-    Wait(200)
-
-    -- 3) Enable cursor AFTER NUI is visible
-    SetNuiFocus(true, true)
-
-    -- 4) Block game input and hide radar/HUD
+    -- Handle game state in a thread
     CreateThread(function()
+        -- Hide and move the player ped
+        local ped = PlayerPedId()
+        FreezeEntityPosition(ped, true)
+        SetEntityVisible(ped, false, false)
+        SetEntityCoords(ped, 0.0, 0.0, -200.0, false, false, false, false)
+
+        -- Block all game input, hide minimap/HUD
         while isActive do
             DisableAllControlActions(0)
             DisplayRadar(false)
             DisplayHud(false)
             Wait(0)
         end
+
+        -- Restore when identity closes
         DisplayRadar(true)
         DisplayHud(true)
     end)

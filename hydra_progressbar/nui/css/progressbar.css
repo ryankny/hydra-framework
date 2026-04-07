@@ -38,8 +38,6 @@ html {
     background: rgba(30, 30, 46, 0.85);
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: var(--hydra-radius-lg);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
     box-shadow: var(--hydra-shadow-lg);
 }
 

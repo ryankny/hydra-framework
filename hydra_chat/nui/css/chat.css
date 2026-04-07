@@ -70,7 +70,6 @@ html {
     word-wrap: break-word;
     border-radius: 4px;
     background: var(--hydra-bg-chat);
-    backdrop-filter: blur(8px);
     animation: msgIn 0.15s ease;
 }
 
@@ -120,7 +119,6 @@ html {
     background: var(--hydra-bg-input);
     border: 1px solid var(--hydra-border);
     border-radius: var(--hydra-radius-md);
-    backdrop-filter: blur(20px);
     pointer-events: auto;
 }
 
@@ -160,7 +158,6 @@ html {
     background: var(--hydra-bg-input);
     border: 1px solid var(--hydra-border);
     border-radius: var(--hydra-radius-md);
-    backdrop-filter: blur(20px);
     max-height: 120px;
     overflow-y: auto;
     pointer-events: auto;

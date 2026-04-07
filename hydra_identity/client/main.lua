@@ -25,11 +25,11 @@ function Hydra.Identity.Show(data)
         DoScreenFadeIn(0)
     end
 
-    -- Hide and move the player ped
+    -- Hide the player ped (keep at current position — moving underground corrupts camera state)
     local ped = PlayerPedId()
     FreezeEntityPosition(ped, true)
     SetEntityVisible(ped, false, false)
-    SetEntityCoords(ped, 0.0, 0.0, -200.0, false, false, false, false)
+    SetEntityAlpha(ped, 0, false)
 
     -- Send NUI data
     SendNUIMessage({
@@ -202,17 +202,21 @@ AddEventHandler('hydra:identity:characterLoaded', function(data)
     -- Final camera reset
     RenderScriptCams(false, false, 0, false, false)
     DestroyAllCams(true)
-
-    -- Explicitly clear NUI focus keep input (in case anything leaked)
     SetNuiFocusKeepInput(false)
 
-    -- Reset the gameplay camera to behind the player
+    -- Restore ped visibility
+    SetEntityAlpha(ped, 255, false)
+    ResetEntityAlpha(ped)
+
+    -- Unfreeze
+    FreezeEntityPosition(ped, false)
+    ClearPedTasksImmediately(ped)
+
+    -- Force camera behind player
+    SetFollowPedCamViewMode(1)
     SetGameplayCamRelativeHeading(0.0)
     SetGameplayCamRelativePitch(0.0, 1.0)
 
-    -- Unfreeze and fade in
-    FreezeEntityPosition(ped, false)
-    ClearPedTasksImmediately(ped)
     DoScreenFadeIn(1000)
 end)
 

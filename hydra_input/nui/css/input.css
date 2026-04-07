@@ -45,7 +45,6 @@ html {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
     pointer-events: auto;
 }
 
@@ -60,8 +59,6 @@ html {
     background: rgba(22, 22, 32, 0.9);
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: var(--hydra-radius-xl);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
     box-shadow: var(--hydra-shadow-lg);
     pointer-events: auto;
     z-index: 10;

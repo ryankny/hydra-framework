@@ -42,9 +42,7 @@
     height: 28px;
     overflow: hidden;
     position: relative;
-    background: linear-gradient(180deg, rgba(15, 15, 20, 0.85), rgba(15, 15, 20, 0.4));
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(15, 15, 20, 0.9);
     border-radius: 0 0 8px 8px;
     border: 1px solid rgba(255, 255, 255, 0.04);
     border-top: none;
@@ -64,12 +62,12 @@
 
 .nav-compass::before {
     left: 0;
-    background: linear-gradient(90deg, rgba(15, 15, 20, 0.9), transparent);
+    background: linear-gradient(90deg, rgba(15, 15, 20, 1), transparent);
 }
 
 .nav-compass::after {
     right: 0;
-    background: linear-gradient(-90deg, rgba(15, 15, 20, 0.9), transparent);
+    background: linear-gradient(-90deg, rgba(15, 15, 20, 1), transparent);
 }
 
 /* Center indicator */
@@ -139,8 +137,7 @@
     align-items: center;
     gap: 2px;
     padding: 6px 16px 8px;
-    background: rgba(15, 15, 20, 0.6);
-    backdrop-filter: blur(8px);
+    background: rgba(15, 15, 20, 0.85);
     border-radius: 0 0 10px 10px;
     border: 1px solid rgba(255, 255, 255, 0.03);
     border-top: none;

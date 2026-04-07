@@ -127,8 +127,6 @@ html {
     position: fixed;
     inset: 0;
     background: var(--hydra-overlay);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
 }
 
 #inventory-container {
@@ -150,8 +148,6 @@ html {
     background: rgba(22, 22, 32, 0.92);
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: var(--hydra-radius-xl);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
     box-shadow: var(--hydra-shadow-lg);
     overflow: hidden;
     animation: panelSlideIn 0.3s ease forwards;
@@ -553,8 +549,6 @@ html {
     background: rgba(22, 22, 32, 0.95);
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: var(--hydra-radius-xl);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
     box-shadow: var(--hydra-shadow-lg);
     padding: var(--hydra-space-lg);
     animation: infoSlideUp 0.25s ease forwards;
@@ -694,8 +688,6 @@ html {
     background: rgba(22, 22, 32, 0.95);
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: var(--hydra-radius-lg);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
     box-shadow: var(--hydra-shadow-lg);
     padding: var(--hydra-space-xs);
     animation: ctxFadeIn 0.12s ease forwards;
@@ -771,8 +763,6 @@ html {
     background: rgba(22, 22, 32, 0.97);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: var(--hydra-radius-xl);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
     box-shadow: var(--hydra-shadow-lg);
     padding: var(--hydra-space-xl);
     text-align: center;

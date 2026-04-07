@@ -35,31 +35,26 @@ function Hydra.Identity.Show(data)
         },
     })
 
-    -- Everything else in a thread — SetNuiFocus is more reliable from thread context
     CreateThread(function()
-        -- Hide and move the player ped
+        -- Hide and move the player ped far away
         local ped = PlayerPedId()
         FreezeEntityPosition(ped, true)
         SetEntityVisible(ped, false, false)
         SetEntityCoords(ped, 0.0, 0.0, -200.0, false, false, false, false)
 
-        -- Wait one frame then set focus — ensures we're in proper tick context
+        -- Set NUI focus from thread context
         Wait(0)
         SetNuiFocus(true, true)
 
-        -- Keep re-applying focus and blocking input every frame
+        -- Only hide radar/HUD — do NOT use DisableAllControlActions
+        -- as it kills the NUI cursor. Player ped is underground anyway.
         while isActive do
-            -- Re-assert focus in case anything resets it
-            if not IsNuiFocused() then
-                SetNuiFocus(true, true)
-            end
-            DisableAllControlActions(0)
             DisplayRadar(false)
             DisplayHud(false)
+            HideHudAndRadarThisFrame()
             Wait(0)
         end
 
-        -- Restore when identity closes
         DisplayRadar(true)
         DisplayHud(true)
     end)
@@ -99,6 +94,10 @@ function Hydra.Identity.SwitchScreen(screen, data)
 
     if screen == 'creation' then
         creationData = {}
+        -- Creation is just a form — no 3D preview needed
+        -- Game screen stays faded out, NUI provides the full background
+    elseif screen == 'appearance' then
+        -- Appearance screen: spawn preview ped with camera
         local cfg = HydraIdentityConfig.camera.creation
         local px, py, pz = cfg.ped_coords.x, cfg.ped_coords.y, cfg.ped_coords.z
 
@@ -107,17 +106,16 @@ function Hydra.Identity.SwitchScreen(screen, data)
         RequestCollisionAtCoord(px, py, pz)
         Wait(2000)
 
-        -- Spawn the preview ped and set up camera
-        Hydra.Identity.SpawnPreviewPed('male')
-        Hydra.Identity.SetupCamera('creation')
-        DoScreenFadeIn(500)
-    elseif screen == 'appearance' then
+        Hydra.Identity.SpawnPreviewPed(creationData.sex or 'male')
         Hydra.Identity.SetupCamera('appearance')
+        DoScreenFadeIn(500)
     elseif screen == 'selection' then
         Hydra.Identity.DestroyPreviewPed()
         Hydra.Identity.DestroyCamera()
         ClearFocus()
-        DoScreenFadeOut(300)
+        if not IsScreenFadedOut() then
+            DoScreenFadeOut(300)
+        end
     end
 
     SendNUIMessage({

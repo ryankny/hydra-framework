@@ -105,7 +105,13 @@ function Hydra.Identity.CreateCharacter(identifier, data)
     end
 
     local cfg = HydraIdentityConfig.creation
-    local playerCfg = HydraPlayersConfig.new_player
+    -- New player defaults (HydraPlayersConfig is in another resource)
+    local playerCfg = {
+        accounts = { cash = 5000, bank = 10000 },
+        job = { name = 'unemployed', label = 'Unemployed', grade = 0 },
+        position = {},
+        group = 'user',
+    }
 
     -- Validate names
     local firstname = data.firstname and data.firstname:gsub('[^%a%-]', '') or 'John'

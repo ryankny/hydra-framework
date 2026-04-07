@@ -135,20 +135,15 @@ RegisterNUICallback('identity:cameraDown', function(_, cb)
     cb({ ok = true })
 end)
 
--- Mouse scroll rotation (while camera is active)
-CreateThread(function()
-    while true do
-        Wait(0)
-        if cameraActive then
-            -- Scroll up = rotate left, scroll down = rotate right
-            DisableControlAction(0, 241, true) -- scroll up
-            DisableControlAction(0, 242, true) -- scroll down
-
-            if IsDisabledControlJustPressed(0, 241) then
-                Hydra.Identity.RotatePed(-15.0)
-            elseif IsDisabledControlJustPressed(0, 242) then
-                Hydra.Identity.RotatePed(15.0)
-            end
+-- NUI scroll callback — JS sends wheel events through here
+RegisterNUICallback('identity:scroll', function(data, cb)
+    if cameraActive then
+        local dir = tonumber(data.delta) or 0
+        if dir > 0 then
+            Hydra.Identity.RotatePed(15.0)
+        elseif dir < 0 then
+            Hydra.Identity.RotatePed(-15.0)
         end
     end
+    cb({ ok = true })
 end)

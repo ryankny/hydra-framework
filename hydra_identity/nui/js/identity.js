@@ -115,6 +115,13 @@ const HydraIdentity = (() => {
         }
     });
 
+    // ---- Mouse wheel → rotate ped ----
+    document.addEventListener('wheel', (e) => {
+        if (currentScreen === 'creation' || currentScreen === 'appearance') {
+            callback('identity:scroll', { delta: e.deltaY > 0 ? 1 : -1 });
+        }
+    }, { passive: true });
+
     // ---- Public API ----
     return {
         callback,

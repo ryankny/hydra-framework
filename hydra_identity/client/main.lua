@@ -208,24 +208,115 @@ AddEventHandler('hydra:identity:characterLoaded', function(data)
     SetEntityAlpha(ped, 255, false)
     ResetEntityAlpha(ped)
 
-    -- Unfreeze
-    FreezeEntityPosition(ped, false)
-    ClearPedTasksImmediately(ped)
+    -- Keep ped frozen during the flydown sequence
+    FreezeEntityPosition(ped, true)
 
-    -- Force the gameplay camera to reset by hammering it every frame
-    -- This is needed because SetPlayerModel corrupts the camera's internal state
-    local heading = pos.heading or 0.0
+    -- ============================================================
+    -- GTA Online-style satellite zoom-in sequence
+    -- Camera starts high in the sky looking down, sweeps down to the player
+    -- ============================================================
+
+    local spawnX, spawnY, spawnZ = pos.x, pos.y, pos.z
+    local spawnHeading = pos.heading or 0.0
+
+    -- Create the sky camera (high altitude, looking straight down)
+    local skyCam = CreateCam('DEFAULT_SCRIPTED_CAMERA', true)
+    SetCamCoord(skyCam, spawnX, spawnY, spawnZ + 800.0)
+    PointCamAtCoord(skyCam, spawnX, spawnY, spawnZ)
+    SetCamFov(skyCam, 60.0)
+    SetCamActive(skyCam, true)
+    RenderScriptCams(true, false, 0, false, false)
+
+    -- Fade in showing the sky view
+    DoScreenFadeIn(800)
+    Wait(600)
+
+    -- Animate the camera swooping down over ~4 seconds
+    -- Using multiple waypoints for a smooth arc
+    local duration = 4000
+    local startTime = GetGameTimer()
+
+    -- Block player input during the sequence
     CreateThread(function()
-        local endTime = GetGameTimer() + 3000
-        while GetGameTimer() < endTime do
-            SetFollowPedCamViewMode(1)
-            SetGameplayCamRelativeHeading(0.0)
-            SetGameplayCamRelativePitch(0.0, 1.0)
+        local seqEnd = startTime + duration + 2000
+        while GetGameTimer() < seqEnd do
+            DisableAllControlActions(0)
             Wait(0)
         end
     end)
 
-    DoScreenFadeIn(1000)
+    -- Behind-player position
+    local behindRad = math.rad(spawnHeading)
+    local behindX = spawnX - math.sin(behindRad) * 4.0
+    local behindY = spawnY - math.cos(behindRad) * 4.0
+    local behindZ = spawnZ + 1.5
+
+    while true do
+        local elapsed = GetGameTimer() - startTime
+        if elapsed >= duration then break end
+
+        local t = elapsed / duration
+
+        -- Smooth easing (ease-in-out)
+        local ease
+        if t < 0.5 then
+            ease = 2 * t * t
+        else
+            ease = 1 - (-2 * t + 2) ^ 2 / 2
+        end
+
+        -- Interpolate position: sky → behind player in a smooth arc
+        local camX = spawnX + (behindX - spawnX) * ease
+        local camY = spawnY + (behindY - spawnY) * ease
+
+        -- Height: starts at 800, swoops down with a curve
+        -- Use a power curve so it stays high longer then drops fast
+        local heightT = ease ^ 0.6
+        local camZ = spawnZ + 800.0 * (1.0 - heightT) + behindZ * heightT
+
+        -- Look target: starts at ground below, shifts to player upper body
+        local lookZ = spawnZ + (0.8 * ease)
+
+        -- FOV narrows as we get closer
+        local fov = 60.0 - (20.0 * ease)
+
+        SetCamCoord(skyCam, camX, camY, camZ)
+        PointCamAtCoord(skyCam, spawnX, spawnY, lookZ)
+        SetCamFov(skyCam, fov)
+
+        Wait(0)
+    end
+
+    -- Final position: behind player
+    SetCamCoord(skyCam, behindX, behindY, behindZ)
+    PointCamAtCoord(skyCam, spawnX, spawnY, spawnZ + 0.8)
+    SetCamFov(skyCam, 40.0)
+    Wait(500)
+
+    -- Unfreeze ped
+    FreezeEntityPosition(ped, false)
+    ClearPedTasksImmediately(ped)
+
+    -- Smoothly hand off to gameplay camera
+    SetCamActive(skyCam, false)
+    RenderScriptCams(false, true, 1500, false, false)
+
+    -- Block mouse input during the transition so camera doesn't snap
+    CreateThread(function()
+        local transEnd = GetGameTimer() + 2000
+        while GetGameTimer() < transEnd do
+            DisableControlAction(0, 1, true)
+            DisableControlAction(0, 2, true)
+            SetGameplayCamRelativeHeading(0.0)
+            SetGameplayCamRelativePitch(0.0, 1.0)
+            Wait(0)
+        end
+        SetGameplayCamRelativeHeading(0.0)
+        SetGameplayCamRelativePitch(0.0, 1.0)
+    end)
+
+    Wait(2000)
+    DestroyCam(skyCam, true)
 end)
 
 --- Event: Character created, update list

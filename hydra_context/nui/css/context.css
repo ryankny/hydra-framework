@@ -27,6 +27,10 @@ html, body {
     user-select: none;
 }
 
+html {
+    pointer-events: none;
+}
+
 #context-root {
     position: fixed;
     inset: 0;

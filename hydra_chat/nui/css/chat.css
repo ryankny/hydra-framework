@@ -20,6 +20,9 @@ html, body {
     font-family: var(--hydra-font);
     color: var(--hydra-text-primary);
     user-select: none;
+}
+
+html {
     pointer-events: none;
 }
 

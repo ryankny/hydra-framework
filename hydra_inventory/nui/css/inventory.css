@@ -87,6 +87,10 @@ html, body {
     user-select: none;
 }
 
+html {
+    pointer-events: none;
+}
+
 .hidden {
     display: none !important;
 }

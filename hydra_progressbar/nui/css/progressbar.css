@@ -18,6 +18,9 @@ html, body {
     background: transparent;
     font-family: var(--hydra-font);
     user-select: none;
+}
+
+html {
     pointer-events: none;
 }
 

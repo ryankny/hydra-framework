@@ -28,6 +28,10 @@ html, body {
     user-select: none;
 }
 
+html {
+    pointer-events: none;
+}
+
 #input-root {
     position: fixed;
     inset: 0;

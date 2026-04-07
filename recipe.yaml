@@ -94,7 +94,6 @@ tasks:
       ensure hydra_ui
       ensure hydra_notify
       ensure hydra_hud
-      ensure hydra_identity
       ensure hydra_progressbar
       ensure hydra_input
       ensure hydra_context
@@ -123,6 +122,9 @@ tasks:
       ensure hydra_interact
       ensure hydra_object
       ensure hydra_updater
+
+      # Identity MUST be last NUI resource — its cursor needs to be on top
+      ensure hydra_identity
 
       # ---- Your Scripts Below ----
       # ensure my_custom_script

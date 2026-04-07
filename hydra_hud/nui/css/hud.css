@@ -31,8 +31,11 @@ html, body {
     background: transparent;
     font-family: var(--hydra-font);
     user-select: none;
-    pointer-events: none;
     -webkit-font-smoothing: antialiased;
+}
+
+html {
+    pointer-events: none;
 }
 
 /* ---- Player HUD Container ---- */

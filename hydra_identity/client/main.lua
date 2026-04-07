@@ -36,18 +36,21 @@ function Hydra.Identity.Show(data)
     })
 
     CreateThread(function()
-        -- Hide and move the player ped far away
+        -- Hide and move the player ped far away (underground = black world)
         local ped = PlayerPedId()
         FreezeEntityPosition(ped, true)
         SetEntityVisible(ped, false, false)
         SetEntityCoords(ped, 0.0, 0.0, -200.0, false, false, false, false)
 
-        -- Set NUI focus from thread context
+        -- Make sure screen is faded IN — DoScreenFadeOut kills the NUI cursor
+        if IsScreenFadedOut() or IsScreenFadingOut() then
+            DoScreenFadeIn(0)
+        end
+
         Wait(0)
         SetNuiFocus(true, true)
 
-        -- Only hide radar/HUD — do NOT use DisableAllControlActions
-        -- as it kills the NUI cursor. Player ped is underground anyway.
+        -- Hide radar/HUD while identity is active
         while isActive do
             DisplayRadar(false)
             DisplayHud(false)
@@ -124,9 +127,8 @@ function Hydra.Identity.SwitchScreen(screen, data)
         Hydra.Identity.DestroyPreviewPed()
         Hydra.Identity.DestroyCamera()
         ClearFocus()
-        if not IsScreenFadedOut() then
-            DoScreenFadeOut(300)
-        end
+        -- Don't fade out — NUI background covers everything
+        -- Player is underground so game world is black anyway
     end
 end
 
@@ -195,12 +197,6 @@ AddEventHandler('hydra:identity:error', function(msg)
         data = { message = msg },
     })
 end)
-
--- Debug: test cursor visibility
-RegisterCommand('idcursor', function()
-    SetNuiFocus(true, true)
-    print('[Identity] Forced NuiFocus — cursor should be visible now')
-end, false)
 
 -- ==========================================
 -- NUI Callbacks

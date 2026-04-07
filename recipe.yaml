@@ -78,9 +78,9 @@ tasks:
 
       # ---- CFX Default Resources ----
       ensure mapmanager
-      ensure spawnmanager
       ensure sessionmanager
       ensure hardcap
+      # NOTE: spawnmanager removed — Hydra handles spawning via hydra_players/hydra_identity
 
       # ---- Database Driver ----
       ensure oxmysql

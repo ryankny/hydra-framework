@@ -31,9 +31,6 @@ function Hydra.Identity.Show(data)
     SetEntityVisible(ped, false, false)
     SetEntityCoords(ped, 0.0, 0.0, -200.0, false, false, false, false)
 
-    -- NUI focus for mouse/keyboard input (NUI cursor doesn't render but clicks work)
-    SetNuiFocus(true, true)
-
     -- Send NUI data
     SendNUIMessage({
         module = 'identity',
@@ -49,8 +46,17 @@ function Hydra.Identity.Show(data)
         },
     })
 
-    -- Hide HUD/radar while identity is active
+    -- Set NUI focus in a thread with a small delay
+    -- On first connect, FiveM's NUI cursor isn't ready immediately
+    -- The /logout path works because the game is already fully loaded
     CreateThread(function()
+        -- Wait for the game to be fully settled
+        Wait(1000)
+        if isActive then
+            SetNuiFocus(true, true)
+        end
+
+        -- Hide HUD/radar while identity is active
         while isActive do
             DisplayRadar(false)
             DisplayHud(false)
@@ -193,8 +199,16 @@ AddEventHandler('hydra:identity:characterLoaded', function(data)
     end
     Wait(500)
 
-    -- Final camera reset — ensure absolutely no scripted cam is active
+    -- Final camera reset
     RenderScriptCams(false, false, 0, false, false)
+    DestroyAllCams(true)
+
+    -- Explicitly clear NUI focus keep input (in case anything leaked)
+    SetNuiFocusKeepInput(false)
+
+    -- Reset the gameplay camera to behind the player
+    SetGameplayCamRelativeHeading(0.0)
+    SetGameplayCamRelativePitch(0.0, 1.0)
 
     -- Unfreeze and fade in
     FreezeEntityPosition(ped, false)

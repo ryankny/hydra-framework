@@ -173,34 +173,6 @@
         </div>
     </div>
 
-    <svg id="cursor" style="position:fixed;top:0;left:0;width:20px;height:20px;pointer-events:none;z-index:2147483647;will-change:transform;transform:translate3d(-50px,-50px,0);display:none" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M3 1L3 16L7.5 11.5L11.5 18L14 16.8L10 10.5L16 10.5Z" fill="#fff" stroke="#000" stroke-width="1" stroke-linejoin="round"/></svg>
-    <script>
-    (function() {
-        var c = document.getElementById('cursor');
-        var dirty = false;
-        var x = -50, y = -50;
-
-        document.addEventListener('mousemove', function(e) {
-            x = e.clientX;
-            y = e.clientY;
-            if (!dirty) {
-                dirty = true;
-                requestAnimationFrame(function() {
-                    c.style.transform = 'translate3d(' + x + 'px,' + y + 'px,0)';
-                    dirty = false;
-                });
-            }
-        });
-
-        // Only show cursor when identity UI is active
-        window.addEventListener('message', function(e) {
-            if (e.data && e.data.module === 'identity') {
-                if (e.data.action === 'show') c.style.display = 'block';
-                if (e.data.action === 'hide') c.style.display = 'none';
-            }
-        });
-    })();
-    </script>
     <script src="js/identity.js"></script>
     <script src="js/selection.js"></script>
     <script src="js/creation.js"></script>

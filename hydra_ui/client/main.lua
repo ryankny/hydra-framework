@@ -47,7 +47,8 @@ end
 --- @param hasCursor boolean
 function Hydra.UI.SetFocus(hasFocus, hasCursor)
     SetNuiFocus(hasFocus, hasCursor)
-    SetNuiFocusKeepInput(not hasFocus)
+    -- When NUI has focus, do NOT keep game input (it causes camera issues)
+    SetNuiFocusKeepInput(false)
 end
 
 --- Release NUI focus

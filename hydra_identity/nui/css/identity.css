@@ -65,7 +65,6 @@ html, body {
     font-size: 16px;
     color: var(--hydra-text-primary);
     -webkit-font-smoothing: antialiased;
-    cursor: none;
 }
 
 #identity-root {

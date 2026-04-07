@@ -20,6 +20,20 @@ function Hydra.Identity.Show(data)
     isActive = true
     currentScreen = 'selection'
 
+    -- Make sure screen is faded IN — faded screen kills cursor rendering
+    if IsScreenFadedOut() or IsScreenFadingOut() then
+        DoScreenFadeIn(0)
+    end
+
+    -- Set NUI focus FIRST, synchronously, before anything else
+    SetNuiFocus(true, true)
+
+    -- Hide and move the player ped
+    local ped = PlayerPedId()
+    FreezeEntityPosition(ped, true)
+    SetEntityVisible(ped, false, false)
+    SetEntityCoords(ped, 0.0, 0.0, -200.0, false, false, false, false)
+
     -- Send NUI data
     SendNUIMessage({
         module = 'identity',
@@ -35,29 +49,18 @@ function Hydra.Identity.Show(data)
         },
     })
 
+    -- Hide radar/HUD in a thread
     CreateThread(function()
-        -- Hide and move the player ped far away (underground = black world)
-        local ped = PlayerPedId()
-        FreezeEntityPosition(ped, true)
-        SetEntityVisible(ped, false, false)
-        SetEntityCoords(ped, 0.0, 0.0, -200.0, false, false, false, false)
-
-        -- Make sure screen is faded IN — DoScreenFadeOut kills the NUI cursor
-        if IsScreenFadedOut() or IsScreenFadingOut() then
-            DoScreenFadeIn(0)
-        end
-
-        Wait(0)
-        SetNuiFocus(true, true)
-
-        -- Hide radar/HUD while identity is active
         while isActive do
             DisplayRadar(false)
             DisplayHud(false)
             HideHudAndRadarThisFrame()
+            -- Re-assert focus every frame in case something resets it
+            if not IsNuiFocused() then
+                SetNuiFocus(true, true)
+            end
             Wait(0)
         end
-
         DisplayRadar(true)
         DisplayHud(true)
     end)

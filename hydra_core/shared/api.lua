@@ -17,13 +17,11 @@ function Hydra.IsReady()
     if isCore then
         return frameworkReady
     end
-    -- Ask hydra_core via export
-    if isServer then
-        local ok, result = pcall(function()
-            return exports['hydra_core']:IsReady()
-        end)
-        if ok then return result end
-    end
+    -- Ask hydra_core via export (both server and client)
+    local ok, result = pcall(function()
+        return exports['hydra_core']:IsReady()
+    end)
+    if ok then return result end
     return frameworkReady
 end
 
@@ -40,14 +38,13 @@ end
 --- @param cb function
 function Hydra.OnReady(cb)
     if isCore then
-        -- In hydra_core, use local tracking
         if frameworkReady then
             cb()
         else
             readyCallbacks[#readyCallbacks + 1] = cb
         end
-    elseif isServer then
-        -- In other resources, poll hydra_core's ready state
+    else
+        -- Both server and client: poll hydra_core's ready state via export
         CreateThread(function()
             local timeout = GetGameTimer() + 60000
             while not Hydra.IsReady() and GetGameTimer() < timeout do
@@ -62,13 +59,6 @@ function Hydra.OnReady(cb)
                 Hydra.Utils.Log('error', 'OnReady timed out in resource %s', GetCurrentResourceName())
             end
         end)
-    else
-        -- Client side — just wait for local ready
-        if frameworkReady then
-            cb()
-        else
-            readyCallbacks[#readyCallbacks + 1] = cb
-        end
     end
 end
 

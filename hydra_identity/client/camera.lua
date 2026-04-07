@@ -83,8 +83,8 @@ function Hydra.Identity.DestroyCamera()
     cameraActive = false
     if activeCam then
         SetCamActive(activeCam, false)
-        RenderScriptCams(false, true, 500, true, false)
-        DestroyCam(activeCam, false)
+        RenderScriptCams(false, false, 0, false, false)
+        DestroyCam(activeCam, true)
         activeCam = nil
     end
 end

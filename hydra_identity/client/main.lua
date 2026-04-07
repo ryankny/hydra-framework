@@ -68,6 +68,10 @@ function Hydra.Identity.Hide()
     isActive = false
     currentScreen = nil
 
+    -- Hide NUI and cursor FIRST (before releasing focus)
+    SendNUIMessage({ module = 'identity', action = 'hide' })
+
+    -- Release NUI focus
     SetNuiFocus(false, false)
 
     -- Clean up streaming
@@ -77,15 +81,9 @@ function Hydra.Identity.Hide()
     Hydra.Identity.DestroyPreviewPed()
     Hydra.Identity.DestroyCamera()
 
-    -- Unfreeze player
+    -- Make player ped visible
     local ped = PlayerPedId()
-    FreezeEntityPosition(ped, false)
     SetEntityVisible(ped, true, false)
-
-    SendNUIMessage({
-        module = 'identity',
-        action = 'hide',
-    })
 end
 
 --- Switch to a different screen
@@ -140,32 +138,68 @@ end)
 --- Event: Character loaded successfully
 RegisterNetEvent('hydra:identity:characterLoaded')
 AddEventHandler('hydra:identity:characterLoaded', function(data)
+    -- Hide identity UI and cursor
     Hydra.Identity.Hide()
+
+    -- Kill ALL scripted cameras immediately (no transition)
+    RenderScriptCams(false, false, 0, false, false)
+    DestroyAllCams(true)
+
+    -- Fade out for clean transition
+    DoScreenFadeOut(0)
+    Wait(200)
+
+    -- Spawn position (default to Legion Square)
+    local pos = data.position
+    if not pos or not pos.x then
+        pos = { x = 215.76, y = -810.12, z = 30.73, heading = 90.0 }
+    end
+
+    -- Set the correct freemode model
+    local sex = data.charinfo and data.charinfo.sex or 'male'
+    local modelName = sex == 'female' and 'mp_f_freemode_01' or 'mp_m_freemode_01'
+    local model = GetHashKey(modelName)
+    RequestModel(model)
+    while not HasModelLoaded(model) do Wait(10) end
+    SetPlayerModel(PlayerId(), model)
+    SetModelAsNoLongerNeeded(model)
+
+    -- Get fresh ped reference after model change
+    local ped = PlayerPedId()
+
+    -- Move to spawn position BEFORE applying appearance
+    SetEntityCoordsNoOffset(ped, pos.x, pos.y, pos.z, false, false, false)
+    SetEntityHeading(ped, pos.heading or 0.0)
+    FreezeEntityPosition(ped, true)
+    SetEntityVisible(ped, true, false)
 
     -- Apply appearance
     if data.appearance and next(data.appearance) then
-        Hydra.Identity.ApplyAppearance(PlayerPedId(), data.appearance)
+        Hydra.Identity.ApplyAppearance(ped, data.appearance)
+        ped = PlayerPedId()
     end
     if data.clothing and next(data.clothing) then
-        Hydra.Identity.ApplyClothing(PlayerPedId(), data.clothing)
+        Hydra.Identity.ApplyClothing(ped, data.clothing)
+    end
+    if not data.appearance or not next(data.appearance) then
+        SetPedDefaultComponentVariation(ped)
     end
 
-    -- Spawn at position
-    if data.position and data.position.x then
-        local ped = PlayerPedId()
-        SetEntityCoords(ped, data.position.x, data.position.y, data.position.z, false, false, false, false)
-        SetEntityHeading(ped, data.position.heading or 0.0)
-
-        -- Wait for collision to load
-        RequestCollisionAtCoord(data.position.x, data.position.y, data.position.z)
-        while not HasCollisionLoadedAroundEntity(ped) do
-            Wait(10)
-        end
+    -- Wait for world to load
+    RequestCollisionAtCoord(pos.x, pos.y, pos.z)
+    local timeout = GetGameTimer() + 10000
+    while not HasCollisionLoadedAroundEntity(ped) and GetGameTimer() < timeout do
+        Wait(100)
     end
+    Wait(500)
 
-    -- Fade in (use hydra_camera if available)
-    local camOk = pcall(function() exports['hydra_camera']:FadeIn(1000) end)
-    if not camOk then DoScreenFadeIn(1000) end
+    -- Final camera reset — ensure absolutely no scripted cam is active
+    RenderScriptCams(false, false, 0, false, false)
+
+    -- Unfreeze and fade in
+    FreezeEntityPosition(ped, false)
+    ClearPedTasksImmediately(ped)
+    DoScreenFadeIn(1000)
 end)
 
 --- Event: Character created, update list
@@ -294,3 +328,33 @@ RegisterNUICallback('identity:rotatePed', function(data, cb)
     end
     cb({ ok = true })
 end)
+
+-- ==========================================
+-- LOGOUT
+-- ==========================================
+
+--- Server tells us to go back to character selection
+RegisterNetEvent('hydra:identity:logout')
+AddEventHandler('hydra:identity:logout', function(data)
+    -- Hide HUD
+    if Hydra.HUD and Hydra.HUD.SetVisible then
+        Hydra.HUD.SetVisible(false)
+    end
+
+    -- Reset characterLoaded flag in HUD (by sending a hide event)
+    SendNUIMessage({ module = 'hud', action = 'setVisible', data = { visible = false } })
+
+    -- Fade out
+    DoScreenFadeOut(500)
+    Wait(600)
+
+    -- Reset camera
+    RenderScriptCams(false, false, 0, true, false)
+
+    -- Show character selection
+    Hydra.Identity.Show(data)
+end)
+
+RegisterCommand('logout', function()
+    TriggerServerEvent('hydra:identity:logout')
+end, false)

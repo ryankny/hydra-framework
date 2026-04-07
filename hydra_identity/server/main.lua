@@ -226,3 +226,48 @@ AddEventHandler('hydra:identity:saveAppearance', function(characterId, appearanc
         clothing = clothing,
     })
 end)
+
+--- Event: Player requests logout — save current character, return to selection
+RegisterNetEvent('hydra:identity:logout')
+AddEventHandler('hydra:identity:logout', function()
+    local src = source
+    if not src or src <= 0 then return end
+
+    -- Save current character data
+    local ok, playerData = pcall(function() return exports['hydra_players']:GetPlayer(src) end)
+    if ok and playerData and playerData.db_id then
+        local sessionTime = playerData.lastLogin and (os.time() - playerData.lastLogin) or 0
+        Hydra.Identity.SaveCharacter(playerData.db_id, {
+            accounts = playerData.accounts,
+            job = playerData.job,
+            position = playerData.position,
+            metadata = playerData.metadata,
+            inventory = playerData.inventory,
+            appearance = playerData.appearance,
+            clothing = playerData.clothing,
+            playtime = (playerData.playtime or 0) + sessionTime,
+        })
+    end
+
+    -- Unload from players system
+    pcall(function() exports['hydra_players']:Unload(src) end)
+
+    -- Mark as selecting again
+    playersSelecting[src] = true
+
+    -- Get character list and send back to client
+    local identifier = exports['hydra_players']:GetIdentifier(src)
+    if not identifier then return end
+
+    local characters = Hydra.Identity.GetCharacters(identifier)
+    local maxChars = HydraIdentityConfig.multichar.max_characters or 5
+
+    TriggerClientEvent('hydra:identity:logout', src, {
+        characters = characters,
+        maxCharacters = maxChars,
+        spawnLocations = HydraIdentityConfig.spawn_locations,
+        canDelete = HydraIdentityConfig.multichar.allow_delete,
+    })
+
+    Hydra.Utils.Log('info', 'Player %d logged out to character selection', src)
+end)

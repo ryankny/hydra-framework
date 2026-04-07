@@ -516,6 +516,7 @@ if cfg.damage and cfg.damage.enabled then
 
     AddEventHandler('weaponDamageEvent', function(src, ev)
         if not IsModuleEnabled('damage') then return end
+        src = tonumber(src)
         if not src or src <= 0 then return end
 
         local p = GetPlayer(src)

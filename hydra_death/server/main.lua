@@ -50,10 +50,10 @@ function Hydra.Death.Respawn(src)
     if not Hydra.Death.IsDead(src) then return end
 
     -- Deduct respawn cost
-    if cfg.respawn_cost > 0 and Hydra.Players then
-        local current = Hydra.Players.GetMoney(src, cfg.respawn_cost_account)
+    if cfg.respawn_cost > 0 then
+        local current = exports['hydra_players']:GetMoney(src, cfg.respawn_cost_account)
         if current and current >= cfg.respawn_cost then
-            Hydra.Players.RemoveMoney(src, cfg.respawn_cost_account, cfg.respawn_cost)
+            exports['hydra_players']:RemoveMoney(src, cfg.respawn_cost_account, cfg.respawn_cost)
         end
     end
 
@@ -115,7 +115,8 @@ AddEventHandler('hydra:death:emsRevive', function(targetId)
     if not Hydra.Death.IsDead(targetSrc) then return end
 
     -- Verify source is EMS
-    local player = Hydra.Players and Hydra.Players.GetPlayer(src)
+    local ok, player = pcall(exports['hydra_players'].GetPlayer, exports['hydra_players'], src)
+    if not ok then player = nil end
     if not player or not player.job then return end
 
     local isEms = false

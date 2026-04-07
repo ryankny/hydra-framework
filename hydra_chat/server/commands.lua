@@ -52,9 +52,7 @@ CreateThread(function()
         Hydra.Chat.SystemMessage(src, 'Report sent to online staff.', '#00B894')
 
         -- Log
-        if Hydra.Logs then
-            Hydra.Logs.Quick('admin', 'Player Report', message, src)
-        end
+        pcall(function() exports['hydra_logs']:LogQuick('admin', 'Player Report', message, src) end)
     end, {
         description = 'Send a report to online staff',
     })

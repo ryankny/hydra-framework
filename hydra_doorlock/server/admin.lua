@@ -57,7 +57,7 @@ AddEventHandler('hydra:doorlock:admin:create', function(data)
     end
 
     -- Insert to database
-    local success = Hydra.Data.Create('doorlocks', {
+    local success = exports['hydra_data']:Create('doorlocks', {
         door_id = id,
         label = type(data.label) == 'string' and data.label:sub(1, 128) or id,
         coords_x = data.coords.x,
@@ -70,7 +70,7 @@ AddEventHandler('hydra:doorlock:admin:create', function(data)
         lock_data = Hydra.Utils.JsonEncode(lockData),
         auto_lock = tonumber(data.auto_lock) or 0,
         double_model = tonumber(data.double) or 0,
-        created_by = Hydra.Players.GetIdentifier(src) or 'unknown',
+        created_by = exports['hydra_players']:GetIdentifier(src) or 'unknown',
     })
 
     if success then
@@ -108,9 +108,7 @@ AddEventHandler('hydra:doorlock:admin:create', function(data)
             message = ('Door "%s" created successfully.'):format(door.label),
         })
 
-        if Hydra.Logs then
-            Hydra.Logs.Admin(src, 'Door Created', ('Created door: %s (%s)'):format(door.label, door.lock_type))
-        end
+        pcall(function() exports['hydra_logs']:LogAdmin(src, 'Door Created', ('Created door: %s (%s)'):format(door.label, door.lock_type)) end)
     else
         TriggerClientEvent('hydra:notify:show', src, {
             type = 'error', title = 'Doorlock',
@@ -150,7 +148,7 @@ AddEventHandler('hydra:doorlock:admin:update', function(doorId, updates)
     end
 
     if next(dbUpdates) then
-        Hydra.Data.Update('doorlocks', { door_id = doorId }, dbUpdates)
+        exports['hydra_data']:Update('doorlocks', { door_id = doorId }, dbUpdates)
     end
 
     TriggerClientEvent('hydra:notify:show', src, {
@@ -158,9 +156,7 @@ AddEventHandler('hydra:doorlock:admin:update', function(doorId, updates)
         message = ('Door "%s" updated. Restart resource to apply.'):format(doorId),
     })
 
-    if Hydra.Logs then
-        Hydra.Logs.Admin(src, 'Door Updated', ('Updated door: %s'):format(doorId))
-    end
+    pcall(function() exports['hydra_logs']:LogAdmin(src, 'Door Updated', ('Updated door: %s'):format(doorId)) end)
 end)
 
 -- =============================================
@@ -174,7 +170,7 @@ AddEventHandler('hydra:doorlock:admin:delete', function(doorId)
     if type(doorId) ~= 'string' then return end
 
     -- Delete from database
-    Hydra.Data.Delete('doorlocks', { door_id = doorId })
+    exports['hydra_data']:Delete('doorlocks', { door_id = doorId })
 
     -- Remove from clients
     TriggerClientEvent('hydra:doorlock:doorRemoved', -1, doorId)
@@ -184,9 +180,7 @@ AddEventHandler('hydra:doorlock:admin:delete', function(doorId)
         message = ('Door "%s" deleted.'):format(doorId),
     })
 
-    if Hydra.Logs then
-        Hydra.Logs.Admin(src, 'Door Deleted', ('Deleted door: %s'):format(doorId))
-    end
+    pcall(function() exports['hydra_logs']:LogAdmin(src, 'Door Deleted', ('Deleted door: %s'):format(doorId)) end)
 end)
 
 -- =============================================

@@ -30,10 +30,6 @@ end)
 RegisterNetEvent('hydra:playerLoaded')
 AddEventHandler('hydra:playerLoaded', function()
     local src = source
-
-    -- Wait for framework to be ready (data layer initialized)
-    while not Hydra.IsReady() do Wait(100) end
-
     playersSelecting[src] = true
 
     -- Use export to call hydra_players (cross-resource)
@@ -82,7 +78,7 @@ end)
 
 --- Callback: Get characters for the requesting player
 Hydra.OnReady(function()
-    Hydra.Callbacks.Register('hydra:identity:getCharacters', function(src, cb)
+    exports['hydra_core']:RegisterCallback('hydra:identity:getCharacters', function(src, cb)
         local identifier = exports['hydra_players']:GetIdentifier(src)
         if not identifier then cb(false) return end
 
@@ -97,7 +93,7 @@ end)
 RegisterNetEvent('hydra:identity:selectCharacter')
 AddEventHandler('hydra:identity:selectCharacter', function(characterId, spawnLocation)
     local src = source
-    if not Hydra.Security.ValidateSource(src) then return end
+    if not (src and src > 0) then return end
     if not playersSelecting[src] then return end
 
     local playerData = Hydra.Identity.LoadCharacter(src, characterId)
@@ -147,7 +143,8 @@ AddEventHandler('hydra:identity:selectCharacter', function(characterId, spawnLoc
     TriggerEvent('hydra:players:playerLoaded', src, playerData)
 
     -- Bridge compatibility
-    local bridge = Hydra.Bridge and Hydra.Bridge.GetMode() or 'native'
+    local ok, mode = pcall(function() return exports['hydra_bridge']:GetBridgeMode() end)
+    local bridge = ok and mode or 'native'
     if bridge == 'esx' then
         TriggerClientEvent('esx:playerLoaded', src, playerData)
     elseif bridge == 'qbcore' or bridge == 'qbox' then
@@ -162,7 +159,7 @@ end)
 RegisterNetEvent('hydra:identity:createCharacter')
 AddEventHandler('hydra:identity:createCharacter', function(data)
     local src = source
-    if not Hydra.Security.ValidateSource(src) then return end
+    if not (src and src > 0) then return end
     if not playersSelecting[src] then return end
 
     local identifier = exports['hydra_players']:GetIdentifier(src)
@@ -198,7 +195,7 @@ end)
 RegisterNetEvent('hydra:identity:deleteCharacter')
 AddEventHandler('hydra:identity:deleteCharacter', function(characterId)
     local src = source
-    if not Hydra.Security.ValidateSource(src) then return end
+    if not (src and src > 0) then return end
 
     local identifier = exports['hydra_players']:GetIdentifier(src)
     if not identifier then return end
@@ -219,7 +216,7 @@ end)
 RegisterNetEvent('hydra:identity:saveAppearance')
 AddEventHandler('hydra:identity:saveAppearance', function(characterId, appearance, clothing)
     local src = source
-    if not Hydra.Security.ValidateSource(src) then return end
+    if not (src and src > 0) then return end
 
     local identifier = exports['hydra_players']:GetIdentifier(src)
     if not identifier then return end

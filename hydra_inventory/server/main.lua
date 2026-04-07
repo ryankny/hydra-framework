@@ -79,13 +79,13 @@ end
 
 CreateThread(function()
     Wait(0)
-    if Hydra.Data and Hydra.Data.Collections then
-        Hydra.Data.Collections.Create('inventories', {
+    pcall(function()
+        exports['hydra_data']:CreateCollection('inventories', {
             { name = 'identifier', type = 'VARCHAR(128)', index = true },
             { name = 'items',      type = 'LONGTEXT' },
             { name = 'money',      type = 'LONGTEXT' },
         })
-    end
+    end)
 end)
 
 -- ---------------------------------------------------------------------------
@@ -109,7 +109,7 @@ local function loadInventory(identifier)
     end
 
     local ok, result = pcall(function()
-        return Hydra.Data.FindOne('inventories', { identifier = identifier })
+        return exports['hydra_data']:FindOne('inventories', { identifier = identifier })
     end)
 
     if ok and result then
@@ -159,14 +159,14 @@ local function saveInventory(identifier)
     local moneyJson = json.encode(inv.money)
 
     local ok, err = pcall(function()
-        local existing = Hydra.Data.FindOne('inventories', { identifier = identifier })
+        local existing = exports['hydra_data']:FindOne('inventories', { identifier = identifier })
         if existing then
-            Hydra.Data.Update('inventories', { identifier = identifier }, {
+            exports['hydra_data']:Update('inventories', { identifier = identifier }, {
                 items = itemsJson,
                 money = moneyJson,
             })
         else
-            Hydra.Data.Create('inventories', {
+            exports['hydra_data']:Create('inventories', {
                 identifier = identifier,
                 items = itemsJson,
                 money = moneyJson,

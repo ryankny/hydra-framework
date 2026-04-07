@@ -25,27 +25,25 @@ local doorSource = {} -- [id] = 'config' | 'database'
 -- =============================================
 
 local function createCollection()
-    if Hydra.Data and Hydra.Data.Collections then
-        Hydra.Data.Collections.Create('doorlocks', {
-            { name = 'door_id',    type = 'VARCHAR(64)',   nullable = false },
-            { name = 'label',      type = 'VARCHAR(128)',  nullable = true },
-            { name = 'coords_x',   type = 'FLOAT',        nullable = false },
-            { name = 'coords_y',   type = 'FLOAT',        nullable = false },
-            { name = 'coords_z',   type = 'FLOAT',        nullable = false },
-            { name = 'model',      type = 'BIGINT',        default = '0' },
-            { name = 'heading',    type = 'FLOAT',         default = '0' },
-            { name = 'locked',     type = 'TINYINT(1)',    default = '1' },
-            { name = 'lock_type',  type = 'VARCHAR(32)',   default = 'public' },
-            { name = 'lock_data',  type = 'TEXT',          default = '{}' },
-            { name = 'auto_lock',  type = 'INT',           default = '0' },
-            { name = 'double_model', type = 'BIGINT',      default = '0' },
-            { name = 'created_by', type = 'VARCHAR(64)',   nullable = true },
-        }, {
-            indexes = {
-                { name = 'idx_door_id', columns = { 'door_id' }, unique = true },
-            },
-        })
-    end
+    exports['hydra_data']:CreateCollection('doorlocks', {
+        { name = 'door_id',    type = 'VARCHAR(64)',   nullable = false },
+        { name = 'label',      type = 'VARCHAR(128)',  nullable = true },
+        { name = 'coords_x',   type = 'FLOAT',        nullable = false },
+        { name = 'coords_y',   type = 'FLOAT',        nullable = false },
+        { name = 'coords_z',   type = 'FLOAT',        nullable = false },
+        { name = 'model',      type = 'BIGINT',        default = '0' },
+        { name = 'heading',    type = 'FLOAT',         default = '0' },
+        { name = 'locked',     type = 'TINYINT(1)',    default = '1' },
+        { name = 'lock_type',  type = 'VARCHAR(32)',   default = 'public' },
+        { name = 'lock_data',  type = 'TEXT',          default = '{}' },
+        { name = 'auto_lock',  type = 'INT',           default = '0' },
+        { name = 'double_model', type = 'BIGINT',      default = '0' },
+        { name = 'created_by', type = 'VARCHAR(64)',   nullable = true },
+    }, {
+        indexes = {
+            { name = 'idx_door_id', columns = { 'door_id' }, unique = true },
+        },
+    })
 end
 
 -- =============================================
@@ -88,8 +86,8 @@ local function loadDoors()
     end
 
     -- Load database doors
-    if Hydra.Data and Hydra.Data.Find then
-        local dbDoors = Hydra.Data.Find('doorlocks', {})
+    do
+        local dbDoors = exports['hydra_data']:Find('doorlocks', {})
         if dbDoors then
             for _, row in ipairs(dbDoors) do
                 local id = row.door_id
@@ -168,16 +166,16 @@ function Hydra.Doorlock.SetLocked(id, locked, src)
 
     -- Save to database if it's a DB door
     if doorSource[id] == 'database' then
-        Hydra.Data.Update('doorlocks', { door_id = id }, {
+        exports['hydra_data']:Update('doorlocks', { door_id = id }, {
             locked = locked and 1 or 0,
         })
     end
 
     -- Log
-    if src and src > 0 and Hydra.Logs then
+    if src and src > 0 then
         local name = GetPlayerName(src) or 'Unknown'
-        Hydra.Logs.Quick('general', 'Door ' .. (locked and 'Locked' or 'Unlocked'),
-            ('**%s** %s door: %s'):format(name, locked and 'locked' or 'unlocked', doors[id].label), src)
+        pcall(function() exports['hydra_logs']:LogQuick('general', 'Door ' .. (locked and 'Locked' or 'Unlocked'),
+            ('**%s** %s door: %s'):format(name, locked and 'locked' or 'unlocked', doors[id].label), src) end)
     end
 end
 
@@ -204,7 +202,8 @@ function Hydra.Doorlock.CanAccess(src, id)
         return true
 
     elseif lockType == 'job' then
-        local player = Hydra.Players and Hydra.Players.GetPlayer(src)
+        local ok, player = pcall(exports['hydra_players'].GetPlayer, exports['hydra_players'], src)
+        if not ok then player = nil end
         if not player or not player.job then return false, 'No job data' end
 
         local jobs = lockData.jobs or {}
@@ -240,8 +239,9 @@ function Hydra.Doorlock.CanAccess(src, id)
         end
 
         -- Fallback: check metadata
-        if not hasItem and Hydra.Players then
-            local player = Hydra.Players.GetPlayer(src)
+        if not hasItem then
+            local ok2, player = pcall(exports['hydra_players'].GetPlayer, exports['hydra_players'], src)
+            if not ok2 then player = nil end
             if player and player.inventory then
                 for _, item in ipairs(player.inventory) do
                     if type(item) == 'table' and item.name == itemName then
@@ -262,7 +262,8 @@ function Hydra.Doorlock.CanAccess(src, id)
         return true
 
     elseif lockType == 'gang' then
-        local player = Hydra.Players and Hydra.Players.GetPlayer(src)
+        local ok, player = pcall(exports['hydra_players'].GetPlayer, exports['hydra_players'], src)
+        if not ok then player = nil end
         if not player then return false, 'No player data' end
 
         local gangs = lockData.gangs or {}
@@ -284,7 +285,8 @@ function Hydra.Doorlock.CanAccess(src, id)
         local identifier = lockData.identifier
         if not identifier then return false, 'No owner set' end
 
-        local playerIdent = Hydra.Players and Hydra.Players.GetIdentifier(src)
+        local ok, playerIdent = pcall(exports['hydra_players'].GetIdentifier, exports['hydra_players'], src)
+        if not ok then playerIdent = nil end
         if playerIdent ~= identifier then return false, 'Not the owner' end
         return true
     end

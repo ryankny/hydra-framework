@@ -45,15 +45,11 @@ end
 RegisterCommand('audio', function(source, args, rawCommand)
     -- Server console or admin check
     if source > 0 then
-        if Hydra.Players and Hydra.Players.IsAdmin then
-            if not Hydra.Players.IsAdmin(source) then
-                TriggerClientEvent('hydra:notify:show', source, {
-                    message = 'You do not have permission to use this command.',
-                    type = 'error',
-                })
-                return
-            end
-        else
+        if not IsPlayerAceAllowed(tostring(source), 'hydra.admin') then
+            TriggerClientEvent('hydra:notify:show', source, {
+                message = 'You do not have permission to use this command.',
+                type = 'error',
+            })
             return
         end
     end

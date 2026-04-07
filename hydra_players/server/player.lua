@@ -52,7 +52,7 @@ function Hydra.Players.Load(source)
     local name = GetPlayerName(source) or 'Unknown'
 
     -- Check if player exists in database
-    local existing = Hydra.Data.FindOne('players', { identifier = identifier })
+    local existing = exports['hydra_data']:FindOne('players', { identifier = identifier })
 
     local playerData
     if existing then
@@ -73,7 +73,7 @@ function Hydra.Players.Load(source)
         }
 
         -- Update last login
-        Hydra.Data.Update('players', { id = existing.id }, {
+        exports['hydra_data']:Update('players', { id = existing.id }, {
             last_login = os.date('%Y-%m-%d %H:%M:%S'),
             last_name = name,
         })
@@ -95,7 +95,7 @@ function Hydra.Players.Load(source)
             lastLogin = os.time(),
         }
 
-        local id = Hydra.Data.Create('players', {
+        local id = exports['hydra_data']:Create('players', {
             identifier = identifier,
             last_name = name,
             permission_group = playerData.group,
@@ -141,7 +141,7 @@ function Hydra.Players.Save(source)
         }
     end
 
-    local affected = Hydra.Data.Update('players', { id = data.db_id }, {
+    local affected = exports['hydra_data']:Update('players', { id = data.db_id }, {
         last_name = data.name,
         permission_group = data.group,
         accounts = Hydra.Utils.JsonEncode(data.accounts),

@@ -21,7 +21,8 @@ local pendingSync = {}    -- [source] = true, debounce sync to next sync interva
 --- @param src number
 function Hydra.Status.Init(src)
     local saved = nil
-    local player = Hydra.Players and Hydra.Players.GetPlayer(src)
+    local ok, player = pcall(exports['hydra_players'].GetPlayer, exports['hydra_players'], src)
+    if not ok then player = nil end
     if player and player.metadata and player.metadata[cfg.metadata_key] then
         saved = player.metadata[cfg.metadata_key]
     end
@@ -101,9 +102,7 @@ function Hydra.Status.Save(src)
     local s = playerStatuses[src]
     if not s then return end
 
-    if Hydra.Players and Hydra.Players.SetMetadata then
-        Hydra.Players.SetMetadata(src, cfg.metadata_key, s)
-    end
+    exports['hydra_players']:SetMetadata(src, cfg.metadata_key, s)
 end
 
 --- Cleanup on player drop
@@ -190,7 +189,7 @@ Hydra.Modules.Register('status', {
         -- Delay slightly to ensure player data is loaded
         CreateThread(function()
             Wait(2000)
-            if Hydra.Players.GetPlayer(src) then
+            if exports['hydra_players']:GetPlayer(src) then
                 Hydra.Status.Init(src)
             end
         end)

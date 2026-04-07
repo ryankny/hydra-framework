@@ -22,13 +22,13 @@ local openInventories = {}
 
 CreateThread(function()
     Wait(0)
-    if Hydra.Data and Hydra.Data.Collections then
-        Hydra.Data.Collections.Create('vehicle_inventories', {
+    pcall(function()
+        exports['hydra_data']:CreateCollection('vehicle_inventories', {
             { name = 'plate', type = 'VARCHAR(32)', index = true },
             { name = 'type',  type = 'VARCHAR(16)' },
             { name = 'items', type = 'LONGTEXT' },
         })
-    end
+    end)
 end)
 
 -- =============================================
@@ -115,7 +115,9 @@ function Hydra.Inventory.OpenVehicleInventory(src, plate, type, vehicleClass)
     openInventories[src] = key
 
     -- Get player inventory
-    local player = Hydra.Players and Hydra.Players.GetPlayer(src)
+    local ok, p = pcall(function() return exports['hydra_players']:GetPlayer(src) end)
+    if not ok then p = nil end
+    local player = p
     local playerItems = player and player.inventory or {}
 
     -- Send both inventories to client
@@ -139,25 +141,23 @@ function Hydra.Inventory.SaveVehicleInventory(plate, type)
     if not inv then return end
 
     local ok, err = pcall(function()
-        if Hydra.Data and Hydra.Data.Update then
-            local existing = Hydra.Data.FindOne('vehicle_inventories', {
-                plate = plate,
-                type = type,
-            })
+        local existing = exports['hydra_data']:FindOne('vehicle_inventories', {
+            plate = plate,
+            type = type,
+        })
 
-            local data = {
-                plate = plate,
-                type = type,
-                items = json.encode(inv.items),
-                max_slots = inv.maxSlots,
-                max_weight = inv.maxWeight,
-            }
+        local data = {
+            plate = plate,
+            type = type,
+            items = json.encode(inv.items),
+            max_slots = inv.maxSlots,
+            max_weight = inv.maxWeight,
+        }
 
-            if existing then
-                Hydra.Data.Update('vehicle_inventories', { plate = plate, type = type }, data)
-            else
-                Hydra.Data.Create('vehicle_inventories', data)
-            end
+        if existing then
+            exports['hydra_data']:Update('vehicle_inventories', { plate = plate, type = type }, data)
+        else
+            exports['hydra_data']:Create('vehicle_inventories', data)
         end
     end)
 
@@ -175,12 +175,10 @@ function Hydra.Inventory.LoadVehicleInventory(plate, type)
 
     local result
     local ok, err = pcall(function()
-        if Hydra.Data and Hydra.Data.FindOne then
-            result = Hydra.Data.FindOne('vehicle_inventories', {
-                plate = plate,
-                type = type,
-            })
-        end
+        result = exports['hydra_data']:FindOne('vehicle_inventories', {
+            plate = plate,
+            type = type,
+        })
     end)
 
     if not ok then
@@ -221,11 +219,9 @@ function Hydra.Inventory.ClearVehicleInventory(plate, type)
 
     -- Also clear in database
     pcall(function()
-        if Hydra.Data and Hydra.Data.Update then
-            Hydra.Data.Update('vehicle_inventories', { plate = plate, type = type }, {
-                items = json.encode({}),
-            })
-        end
+        exports['hydra_data']:Update('vehicle_inventories', { plate = plate, type = type }, {
+            items = json.encode({}),
+        })
     end)
 
     Hydra.Utils.Log('debug', 'Cleared vehicle inventory %s', key)

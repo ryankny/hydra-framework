@@ -8,7 +8,7 @@ Hydra = Hydra or {}
 
 --- Create the players collection (database table)
 local function createPlayersCollection()
-    Hydra.Data.Collections.Create('players', {
+    exports['hydra_data']:CreateCollection('players', {
         { name = 'identifier',       type = 'VARCHAR(64)',  nullable = false },
         { name = 'last_name',        type = 'VARCHAR(64)',  nullable = true },
         { name = 'permission_group', type = 'VARCHAR(32)',  default = 'user' },
@@ -78,7 +78,8 @@ AddEventHandler('hydra:playerLoaded', function()
 
         TriggerEvent('hydra:players:playerLoaded', src, data)
 
-        local bridge = Hydra.Bridge and Hydra.Bridge.GetMode() or 'native'
+        local ok, mode = pcall(function() return exports['hydra_bridge']:GetBridgeMode() end)
+        local bridge = ok and mode or 'native'
         if bridge == 'esx' then
             TriggerClientEvent('esx:playerLoaded', src, data)
         elseif bridge == 'qbcore' or bridge == 'qbox' then
@@ -98,18 +99,18 @@ end)
 -- Register server callbacks
 Hydra.OnReady(function()
     -- Get player data callback
-    Hydra.Callbacks.Register('hydra:players:getData', function(src, cb)
+    exports['hydra_core']:RegisterCallback('hydra:players:getData', function(src, cb)
         local data = Hydra.Players.GetPlayer(src)
         cb(data ~= nil, data)
     end)
 
     -- Get money callback
-    Hydra.Callbacks.Register('hydra:players:getMoney', function(src, cb, accountType)
+    exports['hydra_core']:RegisterCallback('hydra:players:getMoney', function(src, cb, accountType)
         cb(Hydra.Players.GetMoney(src, accountType or 'cash'))
     end)
 
     -- Get job callback
-    Hydra.Callbacks.Register('hydra:players:getJob', function(src, cb)
+    exports['hydra_core']:RegisterCallback('hydra:players:getJob', function(src, cb)
         cb(Hydra.Players.GetJob(src))
     end)
 end)

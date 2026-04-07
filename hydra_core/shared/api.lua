@@ -1,40 +1,74 @@
 --[[
     Hydra Framework - Public API
 
-    This is the main developer-facing API. Script creators interact with Hydra through this.
-    Designed to be clean, minimal, and intuitive.
-
-    Usage in any Hydra-compatible script:
-        local player = Hydra.GetPlayer(source)
-        local money = Hydra.Data.Get('players', identifier, 'money')
-        Hydra.Events.EmitClient('notify', source, { msg = 'Hello!' })
+    Developer-facing API. Works cross-resource via exports.
 ]]
 
 Hydra = Hydra or {}
 
 local isServer = IsDuplicityVersion()
+local isCore = GetCurrentResourceName() == 'hydra_core'
 local readyCallbacks = {}
 local frameworkReady = false
 
 --- Check if framework is ready
 --- @return boolean
 function Hydra.IsReady()
+    if isCore then
+        return frameworkReady
+    end
+    -- Ask hydra_core via export
+    if isServer then
+        local ok, result = pcall(function()
+            return exports['hydra_core']:IsReady()
+        end)
+        if ok then return result end
+    end
     return frameworkReady
 end
 
 --- Get framework version
 --- @return string
 function Hydra.GetVersion()
-    return Hydra.Config.Get('version', '1.0.0')
+    if Hydra.Config and Hydra.Config.Get then
+        return Hydra.Config.Get('version', '1.0.0')
+    end
+    return '1.0.0'
 end
 
 --- Register a callback for when Hydra is ready
 --- @param cb function
 function Hydra.OnReady(cb)
-    if frameworkReady then
-        cb()
+    if isCore then
+        -- In hydra_core, use local tracking
+        if frameworkReady then
+            cb()
+        else
+            readyCallbacks[#readyCallbacks + 1] = cb
+        end
+    elseif isServer then
+        -- In other resources, poll hydra_core's ready state
+        CreateThread(function()
+            local timeout = GetGameTimer() + 60000
+            while not Hydra.IsReady() and GetGameTimer() < timeout do
+                Wait(200)
+            end
+            if Hydra.IsReady() then
+                local ok, err = pcall(cb)
+                if not ok then
+                    Hydra.Utils.Log('error', 'OnReady callback error: %s', tostring(err))
+                end
+            else
+                Hydra.Utils.Log('error', 'OnReady timed out in resource %s', GetCurrentResourceName())
+            end
+        end)
     else
-        readyCallbacks[#readyCallbacks + 1] = cb
+        -- Client side — just wait for local ready
+        if frameworkReady then
+            cb()
+        else
+            readyCallbacks[#readyCallbacks + 1] = cb
+        end
     end
 end
 

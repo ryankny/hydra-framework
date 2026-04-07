@@ -84,7 +84,9 @@ function Hydra.Inventory.PickupDrop(src, dropId)
     local drop = drops[dropId]
     if not drop then return false end
 
-    local player = Hydra.Players and Hydra.Players.GetPlayer(src)
+    local ok, p = pcall(function() return exports['hydra_players']:GetPlayer(src) end)
+    if not ok then p = nil end
+    local player = p
     if not player then return false end
 
     local playerItems = player.inventory or {}
@@ -169,7 +171,9 @@ AddEventHandler('hydra:inventory:drop', function(itemName, count, slot)
 
     if not Hydra.Inventory.ItemExists(itemName) then return end
 
-    local player = Hydra.Players and Hydra.Players.GetPlayer(src)
+    local ok2, p2 = pcall(function() return exports['hydra_players']:GetPlayer(src) end)
+    if not ok2 then p2 = nil end
+    local player = p2
     if not player then return end
 
     local playerItems = player.inventory or {}

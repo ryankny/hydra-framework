@@ -22,13 +22,13 @@ local openStashes = {}
 
 CreateThread(function()
     Wait(0)
-    if Hydra.Data and Hydra.Data.Collections then
-        Hydra.Data.Collections.Create('stash_inventories', {
+    pcall(function()
+        exports['hydra_data']:CreateCollection('stash_inventories', {
             { name = 'stash_id', type = 'VARCHAR(128)', index = true },
             { name = 'items',    type = 'LONGTEXT' },
             { name = 'owner',    type = 'VARCHAR(128)' },
         })
-    end
+    end)
 end)
 
 -- =============================================
@@ -95,7 +95,9 @@ function Hydra.Inventory.OpenStash(src, stashId)
 
     -- Check owner restriction
     if stash.owner then
-        local player = Hydra.Players and Hydra.Players.GetPlayer(src)
+        local ok, p = pcall(function() return exports['hydra_players']:GetPlayer(src) end)
+        if not ok then p = nil end
+        local player = p
         if not player then return end
 
         local identifier = player.identifier or player.citizenid or nil
@@ -107,7 +109,9 @@ function Hydra.Inventory.OpenStash(src, stashId)
 
     -- Check group restriction
     if stash.groups then
-        local player = Hydra.Players and Hydra.Players.GetPlayer(src)
+        local ok2, p2 = pcall(function() return exports['hydra_players']:GetPlayer(src) end)
+        if not ok2 then p2 = nil end
+        local player = p2
         if not player then return end
 
         local hasAccess = false
@@ -138,7 +142,9 @@ function Hydra.Inventory.OpenStash(src, stashId)
     openStashes[src] = stashId
 
     -- Get player inventory
-    local player = Hydra.Players and Hydra.Players.GetPlayer(src)
+    local ok3, p3 = pcall(function() return exports['hydra_players']:GetPlayer(src) end)
+    if not ok3 then p3 = nil end
+    local player = p3
     local playerItems = player and player.inventory or {}
 
     -- Send stash and player inventory to client
@@ -160,25 +166,23 @@ function Hydra.Inventory.SaveStash(id)
     if not stash then return end
 
     local ok, err = pcall(function()
-        if Hydra.Data and Hydra.Data.Update then
-            local existing = Hydra.Data.FindOne('stash_inventories', {
-                stash_id = id,
-            })
+        local existing = exports['hydra_data']:FindOne('stash_inventories', {
+            stash_id = id,
+        })
 
-            local data = {
-                stash_id = id,
-                label = stash.label,
-                items = json.encode(stash.items),
-                max_slots = stash.maxSlots,
-                max_weight = stash.maxWeight,
-                owner = stash.owner,
-            }
+        local data = {
+            stash_id = id,
+            label = stash.label,
+            items = json.encode(stash.items),
+            max_slots = stash.maxSlots,
+            max_weight = stash.maxWeight,
+            owner = stash.owner,
+        }
 
-            if existing then
-                Hydra.Data.Update('stash_inventories', { stash_id = id }, data)
-            else
-                Hydra.Data.Create('stash_inventories', data)
-            end
+        if existing then
+            exports['hydra_data']:Update('stash_inventories', { stash_id = id }, data)
+        else
+            exports['hydra_data']:Create('stash_inventories', data)
         end
     end)
 
@@ -193,11 +197,9 @@ end
 function Hydra.Inventory.LoadStash(id)
     local result
     local ok, err = pcall(function()
-        if Hydra.Data and Hydra.Data.FindOne then
-            result = Hydra.Data.FindOne('stash_inventories', {
-                stash_id = id,
-            })
-        end
+        result = exports['hydra_data']:FindOne('stash_inventories', {
+            stash_id = id,
+        })
     end)
 
     if not ok then
@@ -240,11 +242,9 @@ function Hydra.Inventory.ClearStash(id)
 
     -- Also clear in database
     pcall(function()
-        if Hydra.Data and Hydra.Data.Update then
-            Hydra.Data.Update('stash_inventories', { stash_id = id }, {
-                items = json.encode({}),
-            })
-        end
+        exports['hydra_data']:Update('stash_inventories', { stash_id = id }, {
+            items = json.encode({}),
+        })
     end)
 
     Hydra.Utils.Log('debug', 'Cleared stash "%s"', id)

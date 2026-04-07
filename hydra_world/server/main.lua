@@ -83,11 +83,11 @@ RegisterCommand(cfg.admin.command, function(src, args)
         Hydra.World.SetOverride('population', 'vehicle_density', veh)
         reply(('Density set: ped=%.1f vehicle=%.1f'):format(ped, veh))
 
-        if Hydra.Logs then
+        pcall(function()
             local name = src > 0 and GetPlayerName(src) or 'Console'
-            Hydra.Logs.Admin(src > 0 and src or nil, 'World Density',
+            exports['hydra_logs']:LogAdmin(src > 0 and src or nil, 'World Density',
                 ('%s set density: ped=%.1f veh=%.1f'):format(name, ped, veh))
-        end
+        end)
 
     elseif subCmd == 'accuracy' then
         -- /world accuracy <0.0-1.0>

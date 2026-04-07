@@ -9,7 +9,7 @@ Hydra.Identity = Hydra.Identity or {}
 
 --- Create the characters collection
 function Hydra.Identity.CreateCollection()
-    Hydra.Data.Collections.Create('characters', {
+    exports['hydra_data']:CreateCollection('characters', {
         { name = 'identifier',   type = 'VARCHAR(64)',  nullable = false },
         { name = 'char_slot',    type = 'TINYINT UNSIGNED', default = 1 },
         { name = 'firstname',    type = 'VARCHAR(32)',  nullable = false },
@@ -40,7 +40,7 @@ end
 --- @param identifier string
 --- @return table characters
 function Hydra.Identity.GetCharacters(identifier)
-    local results = Hydra.Data.Find('characters', {
+    local results = exports['hydra_data']:Find('characters', {
         identifier = identifier,
         is_deleted = 0,
     }, {
@@ -118,7 +118,7 @@ function Hydra.Identity.CreateCharacter(identifier, data)
     firstname = firstname:sub(1, 1):upper() .. firstname:sub(2):lower()
     lastname = lastname:sub(1, 1):upper() .. lastname:sub(2):lower()
 
-    local id = Hydra.Data.Create('characters', {
+    local id = exports['hydra_data']:Create('characters', {
         identifier = identifier,
         char_slot = slot,
         firstname = firstname,
@@ -150,17 +150,17 @@ end
 --- @param characterId number
 --- @return table|nil playerData
 function Hydra.Identity.LoadCharacter(source, characterId)
-    local identifier = Hydra.Players.GetIdentifier(source)
+    local identifier = exports['hydra_players']:GetIdentifier(source)
     if not identifier then return nil end
 
-    local row = Hydra.Data.FindOne('characters', { id = characterId, identifier = identifier, is_deleted = 0 }, { cache = false })
+    local row = exports['hydra_data']:FindOne('characters', { id = characterId, identifier = identifier, is_deleted = 0 }, { cache = false })
     if not row then
         Hydra.Utils.Log('warn', 'Character %d not found for %s', characterId, identifier)
         return nil
     end
 
     -- Update last played
-    Hydra.Data.Update('characters', { id = characterId }, {
+    exports['hydra_data']:Update('characters', { id = characterId }, {
         last_played = os.date('%Y-%m-%d %H:%M:%S'),
     })
 
@@ -214,7 +214,7 @@ function Hydra.Identity.SaveCharacter(characterId, data)
 
     if not next(updates) then return true end
 
-    return Hydra.Data.Update('characters', { id = characterId }, updates) > 0
+    return exports['hydra_data']:Update('characters', { id = characterId }, updates) > 0
 end
 
 --- Soft-delete a character
@@ -226,7 +226,7 @@ function Hydra.Identity.DeleteCharacter(identifier, characterId)
         return false
     end
 
-    local affected = Hydra.Data.Update('characters', {
+    local affected = exports['hydra_data']:Update('characters', {
         id = characterId,
         identifier = identifier,
     }, {
@@ -244,5 +244,5 @@ end
 --- @param identifier string
 --- @return number
 function Hydra.Identity.GetCharacterCount(identifier)
-    return Hydra.Data.Count('characters', { identifier = identifier, is_deleted = 0 })
+    return exports['hydra_data']:Count('characters', { identifier = identifier, is_deleted = 0 })
 end

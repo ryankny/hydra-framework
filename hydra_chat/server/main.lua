@@ -159,8 +159,8 @@ function Hydra.Chat.ProcessMessage(src, channel, message)
     end
 
     -- Log to Discord
-    if cfg.log_to_discord and Hydra.Logs and Hydra.Logs.Chat then
-        Hydra.Logs.Chat(src, channel, message)
+    if cfg.log_to_discord then
+        pcall(function() exports['hydra_logs']:LogChat(src, channel, message) end)
     end
 end
 
@@ -174,8 +174,8 @@ function buildFormattedMessage(src, ch, name, message)
     local tags = {}
 
     -- Job tag
-    if cfg.show_job_tag and Hydra.Players then
-        local player = Hydra.Players.GetPlayer(src)
+    if cfg.show_job_tag then
+        local player = exports['hydra_players']:GetPlayer(src)
         if player and player.job and player.job.label then
             tags[#tags + 1] = {
                 text = player.job.label,
@@ -394,9 +394,7 @@ RegisterCommand('mute', function(src, args)
         color = '#FF7675',
     })
 
-    if Hydra.Logs then
-        Hydra.Logs.Admin(src > 0 and src or nil, 'Mute', ('%s muted for %ds'):format(targetName, duration))
-    end
+    pcall(function() exports['hydra_logs']:LogAdmin(src > 0 and src or nil, 'Mute', ('%s muted for %ds'):format(targetName, duration)) end)
 end, false)
 
 RegisterCommand('unmute', function(src, args)

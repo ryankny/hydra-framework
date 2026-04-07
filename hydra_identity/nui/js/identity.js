@@ -76,6 +76,7 @@ const HydraIdentity = (() => {
         switch (action) {
             case 'show':
                 config = data;
+                document.getElementById('identity-root').classList.add('active');
                 if (data.screen === 'selection') {
                     HydraSelection.init(data);
                     showScreen('selection');
@@ -83,6 +84,7 @@ const HydraIdentity = (() => {
                 break;
 
             case 'hide':
+                document.getElementById('identity-root').classList.remove('active');
                 hideAll();
                 break;
 

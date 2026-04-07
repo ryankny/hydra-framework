@@ -92,32 +92,7 @@ end
 function Hydra.Identity.SwitchScreen(screen, data)
     currentScreen = screen
 
-    if screen == 'creation' then
-        creationData = {}
-        -- Creation is just a form — no 3D preview needed
-        -- Game screen stays faded out, NUI provides the full background
-    elseif screen == 'appearance' then
-        -- Appearance screen: spawn preview ped with camera
-        local cfg = HydraIdentityConfig.camera.creation
-        local px, py, pz = cfg.ped_coords.x, cfg.ped_coords.y, cfg.ped_coords.z
-
-        -- Stream in the area
-        SetFocusPosAndVel(px, py, pz, 0.0, 0.0, 0.0)
-        RequestCollisionAtCoord(px, py, pz)
-        Wait(2000)
-
-        Hydra.Identity.SpawnPreviewPed(creationData.sex or 'male')
-        Hydra.Identity.SetupCamera('appearance')
-        DoScreenFadeIn(500)
-    elseif screen == 'selection' then
-        Hydra.Identity.DestroyPreviewPed()
-        Hydra.Identity.DestroyCamera()
-        ClearFocus()
-        if not IsScreenFadedOut() then
-            DoScreenFadeOut(300)
-        end
-    end
-
+    -- Switch NUI screen immediately
     SendNUIMessage({
         module = 'identity',
         action = 'switchScreen',
@@ -126,6 +101,33 @@ function Hydra.Identity.SwitchScreen(screen, data)
             extra = data,
         },
     })
+
+    if screen == 'creation' then
+        creationData = {}
+        -- Creation is just a form — game screen stays faded out, NUI is the background
+    elseif screen == 'appearance' then
+        -- Spawn ped and camera in a thread (has Wait calls)
+        CreateThread(function()
+            local cfg = HydraIdentityConfig.camera.creation
+            local px, py, pz = cfg.ped_coords.x, cfg.ped_coords.y, cfg.ped_coords.z
+
+            -- Stream in the area
+            SetFocusPosAndVel(px, py, pz, 0.0, 0.0, 0.0)
+            RequestCollisionAtCoord(px, py, pz)
+            Wait(2000)
+
+            Hydra.Identity.SpawnPreviewPed(creationData.sex or 'male')
+            Hydra.Identity.SetupCamera('appearance')
+            DoScreenFadeIn(500)
+        end)
+    elseif screen == 'selection' then
+        Hydra.Identity.DestroyPreviewPed()
+        Hydra.Identity.DestroyCamera()
+        ClearFocus()
+        if not IsScreenFadedOut() then
+            DoScreenFadeOut(300)
+        end
+    end
 end
 
 --- Event: Server sends character selection data
@@ -193,6 +195,12 @@ AddEventHandler('hydra:identity:error', function(msg)
         data = { message = msg },
     })
 end)
+
+-- Debug: test cursor visibility
+RegisterCommand('idcursor', function()
+    SetNuiFocus(true, true)
+    print('[Identity] Forced NuiFocus — cursor should be visible now')
+end, false)
 
 -- ==========================================
 -- NUI Callbacks

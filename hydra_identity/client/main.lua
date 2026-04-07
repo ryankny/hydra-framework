@@ -20,67 +20,17 @@ function Hydra.Identity.Show(data)
     isActive = true
     currentScreen = 'selection'
 
-    -- Wait for loading screen to finish shutting down
-    while GetIsLoadingScreenActive() do
-        Wait(100)
-    end
-    -- Extra buffer for NUI shutdown animation
-    Wait(2000)
-
-    -- Freeze and hide player ped
+    -- Freeze, hide, and move player ped away
     local ped = PlayerPedId()
     FreezeEntityPosition(ped, true)
     SetEntityVisible(ped, false, false)
+    SetEntityCoords(ped, 0.0, 0.0, -200.0, false, false, false, false)
 
-    -- For selection screen: keep game screen black, NUI provides the full UI
-    -- The 3D ped preview only appears in creation/appearance screens
-    if not IsScreenFadedOut() then
-        DoScreenFadeOut(0)
-        Wait(100)
-    end
+    -- Fade game screen to black (selection uses NUI as full background)
+    DoScreenFadeOut(0)
+    Wait(200)
 
-    -- Enable NUI cursor
-    SetNuiFocus(true, true)
-
-    -- Block all game input, hide HUD/radar while identity is active
-    CreateThread(function()
-        while isActive do
-            -- Disable all player controls so clicks don't attack/shoot
-            DisableControlAction(0, 24, true)   -- Attack
-            DisableControlAction(0, 25, true)   -- Aim
-            DisableControlAction(0, 37, true)   -- Select weapon
-            DisableControlAction(0, 44, true)   -- Cover
-            DisableControlAction(0, 47, true)   -- Detonate
-            DisableControlAction(0, 58, true)   -- Throw grenade
-            DisableControlAction(0, 69, true)   -- Vehicle attack
-            DisableControlAction(0, 70, true)   -- Vehicle attack 2
-            DisableControlAction(0, 92, true)   -- Vehicle passenger attack
-            DisableControlAction(0, 114, true)  -- Fly attack
-            DisableControlAction(0, 140, true)  -- Melee light
-            DisableControlAction(0, 141, true)  -- Melee heavy
-            DisableControlAction(0, 142, true)  -- Melee alternate
-            DisableControlAction(0, 257, true)  -- Attack 2
-            DisableControlAction(0, 263, true)  -- Melee attack 1
-            DisableControlAction(0, 264, true)  -- Melee attack 2
-            DisableControlAction(0, 30, true)   -- Move LR
-            DisableControlAction(0, 31, true)   -- Move UD
-            DisableControlAction(0, 21, true)   -- Sprint
-            DisableControlAction(0, 22, true)   -- Jump
-            DisableControlAction(0, 23, true)   -- Enter vehicle
-            DisableControlAction(0, 75, true)   -- Exit vehicle
-            DisableControlAction(0, 73, true)   -- Vehicle handbrake
-            DisableControlAction(0, 1, true)    -- Camera LR
-            DisableControlAction(0, 2, true)    -- Camera UD
-
-            DisplayRadar(false)
-            DisplayHud(false)
-            Wait(0)
-        end
-        DisplayRadar(true)
-        DisplayHud(true)
-    end)
-
-    -- Send data to NUI
+    -- 1) Send NUI message to make the UI visible (adds .active class)
     SendNUIMessage({
         module = 'identity',
         action = 'show',
@@ -94,6 +44,24 @@ function Hydra.Identity.Show(data)
             creation = HydraIdentityConfig.creation,
         },
     })
+
+    -- 2) Wait for NUI to render
+    Wait(200)
+
+    -- 3) Enable cursor AFTER NUI is visible
+    SetNuiFocus(true, true)
+
+    -- 4) Block game input and hide radar/HUD
+    CreateThread(function()
+        while isActive do
+            DisableAllControlActions(0)
+            DisplayRadar(false)
+            DisplayHud(false)
+            Wait(0)
+        end
+        DisplayRadar(true)
+        DisplayHud(true)
+    end)
 end
 
 --- Hide the identity UI
@@ -127,14 +95,13 @@ function Hydra.Identity.SwitchScreen(screen, data)
 
     if screen == 'creation' then
         creationData = {}
-        -- Move player to preview location and fade in the 3D scene
+        -- Load collision at preview location, set up camera and preview ped
         local cfg = HydraIdentityConfig.camera.creation
-        local ped = PlayerPedId()
-        SetEntityCoords(ped, cfg.ped_coords.x, cfg.ped_coords.y, cfg.ped_coords.z, false, false, false, false)
         RequestCollisionAtCoord(cfg.ped_coords.x, cfg.ped_coords.y, cfg.ped_coords.z)
-        Wait(300)
-        Hydra.Identity.SetupCamera('creation')
+        Wait(500)
+        -- Player ped stays hidden far away — only the preview ped shows
         Hydra.Identity.SpawnPreviewPed('male')
+        Hydra.Identity.SetupCamera('creation')
         DoScreenFadeIn(500)
     elseif screen == 'appearance' then
         Hydra.Identity.SetupCamera('appearance')

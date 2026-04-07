@@ -83,13 +83,13 @@ HydraIdentityConfig = {
     },
 
     -- Camera position for character preview/creation
-    -- Uses the LSIA hangar interior — clean, well-lit, no NPCs
     camera = {
         -- Character creation camera
+        -- Camera is ~3m in front of ped, at head height
         creation = {
-            coords = { x = -1043.54, y = -2745.43, z = 21.36 },
-            ped_coords = { x = -1044.60, y = -2743.47, z = 20.36 },
-            ped_heading = 150.0,
+            coords = { x = -813.0, y = 176.0, z = 76.74 },
+            ped_coords = { x = -814.5, y = 178.5, z = 75.74 },
+            ped_heading = 200.0,
         },
     },
 

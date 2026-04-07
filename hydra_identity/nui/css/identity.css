@@ -88,10 +88,11 @@ html, body {
     background: linear-gradient(135deg, #0F0F14 0%, #1a1a2e 50%, #0F0F14 100%);
 }
 
-/* Creation/appearance screens: semi-transparent to show 3D ped preview */
+/* Creation/appearance screens: transparent — 3D ped preview shows through.
+   The panels themselves have glass backgrounds. */
 #screen-creation,
 #screen-appearance {
-    background: rgba(10, 10, 15, 0.3);
+    background: none;
 }
 
 /* ---- Screens ---- */

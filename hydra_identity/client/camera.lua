@@ -30,21 +30,20 @@ function Hydra.Identity.SetupCamera(screen)
 
     local camCoords = vector3(camCfg.coords.x, camCfg.coords.y, camCfg.coords.z)
     local pedCoords = vector3(camCfg.ped_coords.x, camCfg.ped_coords.y, camCfg.ped_coords.z)
-    -- Point camera at chest/head height (ped_coords is feet level)
-    local lookAt = vector3(pedCoords.x, pedCoords.y, pedCoords.z + 0.6)
 
-    local fov = 32.0
-    local position = camCoords
+    -- Camera at chest level (ped_coords.z is feet), head is ~1.7m up
+    local lookAt = vector3(pedCoords.x, pedCoords.y, pedCoords.z + 1.0)
+    local position = vector3(camCoords.x, camCoords.y, camCoords.z + 1.0)
+    local fov = 35.0
 
     if screen == 'selection' then
-        -- Wider shot for character selection
         fov = 40.0
     elseif screen == 'appearance' then
         -- Closer shot focused on face
-        local offset = (lookAt - camCoords) * 0.4
-        position = camCoords + offset
+        local dir = lookAt - position
+        position = position + dir * 0.5
         position = vector3(position.x, position.y, position.z + 0.3)
-        lookAt = vector3(pedCoords.x, pedCoords.y, pedCoords.z + 0.8)
+        lookAt = vector3(pedCoords.x, pedCoords.y, pedCoords.z + 1.5)
         fov = 25.0
     end
 

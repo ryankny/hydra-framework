@@ -83,12 +83,14 @@ HydraIdentityConfig = {
     },
 
     -- Camera position for character preview/creation
+    -- Uses a high-altitude position to avoid world clutter
     camera = {
         -- Character creation camera
         creation = {
-            coords = { x = -73.89, y = -818.81, z = 326.18 },
-            ped_coords = { x = -75.02, y = -819.91, z = 325.18 },
-            ped_heading = 70.0,
+            -- Camera looks at the ped from ~2m away, slightly above eye level
+            coords = { x = 402.89, y = -1002.0, z = -98.0 },
+            ped_coords = { x = 402.89, y = -1000.0, z = -99.0 },
+            ped_heading = 180.0,
         },
     },
 

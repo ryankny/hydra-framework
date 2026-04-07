@@ -30,15 +30,22 @@ function Hydra.Identity.SetupCamera(screen)
 
     local camCoords = vector3(camCfg.coords.x, camCfg.coords.y, camCfg.coords.z)
     local pedCoords = vector3(camCfg.ped_coords.x, camCfg.ped_coords.y, camCfg.ped_coords.z)
+    -- Point camera at chest/head height (ped_coords is feet level)
+    local lookAt = vector3(pedCoords.x, pedCoords.y, pedCoords.z + 0.6)
 
-    local fov = 45.0
+    local fov = 32.0
     local position = camCoords
 
-    if screen == 'appearance' then
-        local offset = (pedCoords - camCoords) * 0.35
+    if screen == 'selection' then
+        -- Wider shot for character selection
+        fov = 40.0
+    elseif screen == 'appearance' then
+        -- Closer shot focused on face
+        local offset = (lookAt - camCoords) * 0.4
         position = camCoords + offset
         position = vector3(position.x, position.y, position.z + 0.3)
-        fov = 35.0
+        lookAt = vector3(pedCoords.x, pedCoords.y, pedCoords.z + 0.8)
+        fov = 25.0
     end
 
     -- Use hydra_camera if available
@@ -46,7 +53,7 @@ function Hydra.Identity.SetupCamera(screen)
         local ok, camId = pcall(function()
             return exports['hydra_camera']:Create({
                 position = position,
-                target = pedCoords,
+                target = lookAt,
                 fov = fov,
                 active = true,
                 transition = 500,
@@ -62,7 +69,7 @@ function Hydra.Identity.SetupCamera(screen)
     -- Fallback: native camera
     activeCam = CreateCam('DEFAULT_SCRIPTED_CAMERA', true)
     SetCamCoord(activeCam, position.x, position.y, position.z)
-    PointCamAtCoord(activeCam, pedCoords.x, pedCoords.y, pedCoords.z)
+    PointCamAtCoord(activeCam, lookAt.x, lookAt.y, lookAt.z)
     SetCamFov(activeCam, fov)
     SetCamActive(activeCam, true)
     RenderScriptCams(true, true, 500, true, false)

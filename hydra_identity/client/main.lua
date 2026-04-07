@@ -20,14 +20,39 @@ function Hydra.Identity.Show(data)
     isActive = true
     currentScreen = 'selection'
 
-    -- Freeze player
-    SetNuiFocus(true, true)
+    -- Wait for loading screen to finish shutting down
+    while GetIsLoadingScreenActive() do
+        Wait(100)
+    end
+    -- Extra buffer for NUI shutdown animation
+    Wait(2000)
+
+    -- Ensure screen is faded out for clean transition
+    if not IsScreenFadedOut() then
+        DoScreenFadeOut(0)
+        Wait(100)
+    end
+
+    -- Move player to the preview location (interior)
+    local cfg = HydraIdentityConfig.camera.creation
     local ped = PlayerPedId()
+    SetEntityCoords(ped, cfg.ped_coords.x, cfg.ped_coords.y, cfg.ped_coords.z, false, false, false, false)
     FreezeEntityPosition(ped, true)
     SetEntityVisible(ped, false, false)
 
+    -- Wait for collision to load at preview location
+    RequestCollisionAtCoord(cfg.ped_coords.x, cfg.ped_coords.y, cfg.ped_coords.z)
+    Wait(500)
+
     -- Setup camera
     Hydra.Identity.SetupCamera('selection')
+
+    -- Fade in so player can see the camera/NUI
+    DoScreenFadeIn(500)
+    Wait(500)
+
+    -- Enable NUI cursor
+    SetNuiFocus(true, true)
 
     -- Send data to NUI
     SendNUIMessage({

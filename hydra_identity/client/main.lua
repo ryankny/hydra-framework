@@ -147,42 +147,29 @@ AddEventHandler('hydra:identity:characterLoaded', function(data)
     -- Hide identity UI and cursor
     Hydra.Identity.Hide()
 
-    -- Kill ALL scripted cameras immediately (no transition)
+    -- Clean slate
     RenderScriptCams(false, false, 0, false, false)
     DestroyAllCams(true)
-
-    -- Fade out for clean transition
     DoScreenFadeOut(0)
     Wait(200)
 
-    -- Spawn position (default to Legion Square)
+    -- Spawn position
     local pos = data.position
     if not pos or not pos.x then
         pos = { x = 215.76, y = -810.12, z = 30.73, heading = 90.0 }
     end
 
-    -- Set the correct freemode model
+    -- Set model
     local sex = data.charinfo and data.charinfo.sex or 'male'
     local modelName = sex == 'female' and 'mp_f_freemode_01' or 'mp_m_freemode_01'
     local model = GetHashKey(modelName)
     RequestModel(model)
     while not HasModelLoaded(model) do Wait(10) end
-
-    -- Use SwitchOutPlayer BEFORE changing model — this is what GTA Online does.
-    -- It handles the satellite camera and properly resets the camera system.
-    SwitchOutPlayer(PlayerPedId(), 0, 1)
-
-    -- Wait for switch to complete (player is now in "sky" view)
-    while GetPlayerSwitchState() ~= 5 do
-        Wait(0)
-    end
-
-    -- NOW change the model while in switch state — camera is detached
     SetPlayerModel(PlayerId(), model)
     SetModelAsNoLongerNeeded(model)
     local ped = PlayerPedId()
 
-    -- Position the ped at spawn
+    -- Position ped
     SetEntityCoordsNoOffset(ped, pos.x, pos.y, pos.z, false, false, false)
     SetEntityHeading(ped, pos.heading or 0.0)
     FreezeEntityPosition(ped, true)
@@ -202,30 +189,33 @@ AddEventHandler('hydra:identity:characterLoaded', function(data)
         SetPedDefaultComponentVariation(ped)
     end
 
-    -- Load the world at spawn location
+    -- Load world
     RequestCollisionAtCoord(pos.x, pos.y, pos.z)
     local timeout = GetGameTimer() + 10000
     while not HasCollisionLoadedAroundEntity(ped) and GetGameTimer() < timeout do
         Wait(100)
     end
 
-    -- Clear any leaked NUI state
+    -- Clear leaked state
     SetNuiFocusKeepInput(false)
     RenderScriptCams(false, false, 0, false, false)
     DestroyAllCams(true)
 
-    -- Unfreeze ped
+    -- Unfreeze
     FreezeEntityPosition(ped, false)
     ClearPedTasksImmediately(ped)
 
-    -- Fade in and trigger the GTA Online-style zoom-in from satellite
+    -- GTA Online satellite zoom-in using native switch system
     DoScreenFadeIn(0)
     SwitchInPlayer(ped)
 
-    -- Wait for the switch-in animation to complete
+    -- Wait for zoom-in to finish
     while GetPlayerSwitchState() ~= 12 do
         Wait(0)
     end
+
+    -- The switch system properly initializes the camera.
+    -- No manual camera resets needed.
 end)
 
 --- Event: Character created, update list

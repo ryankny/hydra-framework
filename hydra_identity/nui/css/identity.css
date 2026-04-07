@@ -526,10 +526,34 @@ html, body {
     display: flex;
     flex-direction: column;
     padding: 24px;
-    background: rgba(22, 22, 32, 0.85);
+    background: rgba(18, 18, 28, 0.95);
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: var(--hydra-radius-xl);
     box-shadow: var(--hydra-shadow-lg);
+    position: relative;
+}
+
+/* Loading state — shown while 3D preview loads */
+.appearance-panel.loading .appearance-content,
+.appearance-panel.loading .appearance-controls {
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+.appearance-panel.loading::after {
+    content: 'Loading preview...';
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--hydra-text-muted);
+    font-size: 0.8rem;
+    animation: pulse-text 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-text {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
 }
 
 .appearance-header {

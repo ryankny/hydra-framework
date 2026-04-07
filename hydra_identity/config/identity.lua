@@ -82,23 +82,12 @@ HydraIdentityConfig = {
         'Other',
     },
 
-    -- Camera position for character preview/creation
-    -- Uses an open rooftop with clear sky (no walls, no NPCs)
+    -- Camera position for character appearance preview
+    -- Uses the MP character creator interior (always loaded, clean background)
     camera = {
         creation = {
-            -- Ped stands here
-            ped_coords = { x = -75.19, y = -819.03, z = 326.18 },
-            ped_heading = 160.0,
-            -- Camera orbits around the ped
-            distance = 1.8,         -- distance from ped
-            height_offset = 0.5,    -- camera height above ped feet
-            min_height = -0.3,      -- lowest camera can go (below chest)
-            max_height = 1.2,       -- highest camera can go (above head)
-            fov = 35.0,
-            -- Appearance close-up
-            appearance_distance = 0.9,
-            appearance_height = 0.65,
-            appearance_fov = 28.0,
+            ped_coords = { x = 402.89, y = -997.06, z = -99.00 },
+            ped_heading = 180.0,
         },
     },
 

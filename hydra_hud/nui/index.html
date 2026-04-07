@@ -77,24 +77,22 @@
 
     <!-- Vehicle HUD (bottom right) -->
     <div id="hud-vehicle" class="hud-vehicle" style="display:none">
-        <!-- Speedometer -->
-        <div class="vehicle-speed">
-            <div class="speed-value" id="veh-speed">0</div>
-            <div class="speed-unit" id="veh-speed-unit">MPH</div>
-        </div>
-
-        <!-- RPM Bar -->
-        <div class="vehicle-rpm" id="veh-rpm-container">
-            <div class="rpm-track">
-                <div class="rpm-fill" id="veh-rpm-fill"></div>
+        <!-- Circular Speedometer -->
+        <div class="speedo-container">
+            <svg class="speedo-ring" viewBox="0 0 160 160">
+                <!-- Background arc -->
+                <circle class="speedo-bg" cx="80" cy="80" r="70" />
+                <!-- Speed arc (animated via stroke-dashoffset) -->
+                <circle class="speedo-fill" id="speedo-arc" cx="80" cy="80" r="70" />
+                <!-- RPM arc (inner ring) -->
+                <circle class="speedo-rpm-bg" cx="80" cy="80" r="58" />
+                <circle class="speedo-rpm-fill" id="speedo-rpm-arc" cx="80" cy="80" r="58" />
+            </svg>
+            <div class="speedo-center">
+                <div class="speed-value" id="veh-speed">0</div>
+                <div class="speed-unit" id="veh-speed-unit">MPH</div>
+                <div class="gear-display" id="veh-gear">N</div>
             </div>
-            <div class="rpm-label">RPM</div>
-        </div>
-
-        <!-- Gear indicator -->
-        <div class="vehicle-gear" id="veh-gear-container">
-            <span class="gear-label">GEAR</span>
-            <span class="gear-value" id="veh-gear">N</span>
         </div>
 
         <!-- Vehicle stats -->

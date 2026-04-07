@@ -1,37 +1,44 @@
 --[[
     Hydra Identity - Client Main
 
-    Orchestrates the character selection/creation flow.
-    Manages transitions between selection, creation, and appearance screens.
+    Smooth flow:
+    1. Selection: Full NUI screen (gradient bg), no 3D world
+    2. Creation: Full NUI screen (gradient bg), no 3D world
+    3. Appearance: NUI panel on left, 3D ped preview on right
+    4. Spawn: GTA Online satellite zoom-in via SwitchInPlayer
 ]]
 
 Hydra = Hydra or {}
 Hydra.Identity = Hydra.Identity or {}
 
 local isActive = false
-local currentScreen = nil -- 'selection' | 'creation' | 'appearance'
+local currentScreen = nil
 local selectedCharId = nil
 local creationData = {}
+local appearanceReady = false  -- true once ped/camera are set up for appearance
 
---- Show the identity UI
---- @param data table { characters, maxCharacters, spawnLocations, canDelete }
+-- ==========================================
+-- SHOW / HIDE
+-- ==========================================
+
 function Hydra.Identity.Show(data)
     if isActive then return end
     isActive = true
     currentScreen = 'selection'
+    appearanceReady = false
 
-    -- Make sure screen is faded IN
+    -- Ensure screen is visible (not faded out)
     if IsScreenFadedOut() or IsScreenFadingOut() then
         DoScreenFadeIn(0)
     end
 
-    -- Hide the player ped (keep at current position — moving underground corrupts camera state)
+    -- Hide player ped (stays at current pos, just invisible)
     local ped = PlayerPedId()
     FreezeEntityPosition(ped, true)
     SetEntityVisible(ped, false, false)
     SetEntityAlpha(ped, 0, false)
 
-    -- Send NUI data
+    -- Send NUI data (renders the selection screen)
     SendNUIMessage({
         module = 'identity',
         action = 'show',
@@ -46,17 +53,14 @@ function Hydra.Identity.Show(data)
         },
     })
 
-    -- Set NUI focus in a thread with a small delay
-    -- On first connect, FiveM's NUI cursor isn't ready immediately
-    -- The /logout path works because the game is already fully loaded
+    -- Enable cursor with delay on first load (FiveM NUI cursor needs game to settle)
     CreateThread(function()
-        -- Wait for the game to be fully settled
         Wait(1000)
         if isActive then
             SetNuiFocus(true, true)
         end
 
-        -- Hide HUD/radar while identity is active
+        -- Hide HUD/radar
         while isActive do
             DisplayRadar(false)
             DisplayHud(false)
@@ -68,83 +72,121 @@ function Hydra.Identity.Show(data)
     end)
 end
 
---- Hide the identity UI
 function Hydra.Identity.Hide()
     if not isActive then return end
     isActive = false
     currentScreen = nil
+    appearanceReady = false
 
-    -- Hide NUI and cursor FIRST (before releasing focus)
     SendNUIMessage({ module = 'identity', action = 'hide' })
-
-    -- Release NUI focus
     SetNuiFocus(false, false)
-
-    -- Clean up streaming
     ClearFocus()
 
-    -- Destroy preview ped and camera
     Hydra.Identity.DestroyPreviewPed()
     Hydra.Identity.DestroyCamera()
 
-    -- Make player ped visible
     local ped = PlayerPedId()
     SetEntityVisible(ped, true, false)
+    SetEntityAlpha(ped, 255, false)
+    ResetEntityAlpha(ped)
 end
 
---- Switch to a different screen
---- @param screen string
---- @param data table|nil
+-- ==========================================
+-- SCREEN SWITCHING
+-- ==========================================
+
 function Hydra.Identity.SwitchScreen(screen, data)
+    local prevScreen = currentScreen
     currentScreen = screen
 
-    -- Switch NUI screen immediately
-    SendNUIMessage({
-        module = 'identity',
-        action = 'switchScreen',
-        data = {
-            screen = screen,
-            extra = data,
-        },
-    })
-
     if screen == 'creation' then
+        -- Creation is a form — clean up any appearance preview
         creationData = {}
-        -- Creation is just a form — game screen stays faded out, NUI is the background
+        if appearanceReady then
+            Hydra.Identity.DestroyPreviewPed()
+            Hydra.Identity.DestroyCamera()
+            ClearFocus()
+            appearanceReady = false
+        end
+
+        -- Switch NUI immediately
+        SendNUIMessage({
+            module = 'identity',
+            action = 'switchScreen',
+            data = { screen = screen, extra = data },
+        })
+
     elseif screen == 'appearance' then
-        -- Spawn ped and camera in a thread (has Wait calls)
+        -- Show a loading state in NUI first
+        SendNUIMessage({
+            module = 'identity',
+            action = 'switchScreen',
+            data = { screen = screen, extra = data, loading = true },
+        })
+
+        -- Load the 3D preview in a thread
         CreateThread(function()
             local cfg = HydraIdentityConfig.camera.creation
             local px, py, pz = cfg.ped_coords.x, cfg.ped_coords.y, cfg.ped_coords.z
 
-            -- Stream in the area
+            -- Stream the preview area
             SetFocusPosAndVel(px, py, pz, 0.0, 0.0, 0.0)
             RequestCollisionAtCoord(px, py, pz)
-            Wait(2000)
 
+            -- Wait for area to load
+            local timeout = GetGameTimer() + 5000
+            while GetGameTimer() < timeout do
+                RequestCollisionAtCoord(px, py, pz)
+                Wait(100)
+            end
+
+            -- Bail if user navigated away
+            if currentScreen ~= 'appearance' then
+                ClearFocus()
+                return
+            end
+
+            -- Spawn preview ped and camera
             Hydra.Identity.SpawnPreviewPed(creationData.sex or 'male')
             Hydra.Identity.SetupCamera('appearance')
-            DoScreenFadeIn(500)
+            appearanceReady = true
+
+            -- Tell NUI the preview is ready (hides loading spinner)
+            SendNUIMessage({
+                module = 'identity',
+                action = 'appearanceReady',
+            })
         end)
+
     elseif screen == 'selection' then
-        Hydra.Identity.DestroyPreviewPed()
-        Hydra.Identity.DestroyCamera()
-        ClearFocus()
-        -- Don't fade out — NUI background covers everything
-        -- Player is underground so game world is black anyway
+        -- Clean up appearance preview
+        if appearanceReady then
+            Hydra.Identity.DestroyPreviewPed()
+            Hydra.Identity.DestroyCamera()
+            ClearFocus()
+            appearanceReady = false
+        end
+
+        SendNUIMessage({
+            module = 'identity',
+            action = 'switchScreen',
+            data = { screen = screen, extra = data },
+        })
     end
 end
 
---- Event: Server sends character selection data
+-- ==========================================
+-- EVENTS
+-- ==========================================
+
 RegisterNetEvent('hydra:identity:showSelection')
 AddEventHandler('hydra:identity:showSelection', function(data)
     Hydra.Identity.Show(data)
 end)
 
---- Event: Character loaded successfully
+--- Character loaded — spawn into the world
 RegisterNetEvent('hydra:identity:characterLoaded')
 AddEventHandler('hydra:identity:characterLoaded', function(data)
-    -- Hide identity UI and cursor
     Hydra.Identity.Hide()
 
     -- Clean slate
@@ -159,7 +201,7 @@ AddEventHandler('hydra:identity:characterLoaded', function(data)
         pos = { x = 215.76, y = -810.12, z = 30.73, heading = 90.0 }
     end
 
-    -- Set model
+    -- Set freemode model
     local sex = data.charinfo and data.charinfo.sex or 'male'
     local modelName = sex == 'female' and 'mp_f_freemode_01' or 'mp_m_freemode_01'
     local model = GetHashKey(modelName)
@@ -169,7 +211,7 @@ AddEventHandler('hydra:identity:characterLoaded', function(data)
     SetModelAsNoLongerNeeded(model)
     local ped = PlayerPedId()
 
-    -- Position ped
+    -- Position
     SetEntityCoordsNoOffset(ped, pos.x, pos.y, pos.z, false, false, false)
     SetEntityHeading(ped, pos.heading or 0.0)
     FreezeEntityPosition(ped, true)
@@ -177,7 +219,7 @@ AddEventHandler('hydra:identity:characterLoaded', function(data)
     SetEntityAlpha(ped, 255, false)
     ResetEntityAlpha(ped)
 
-    -- Apply appearance
+    -- Appearance
     if data.appearance and next(data.appearance) then
         Hydra.Identity.ApplyAppearance(ped, data.appearance)
         ped = PlayerPedId()
@@ -196,29 +238,22 @@ AddEventHandler('hydra:identity:characterLoaded', function(data)
         Wait(100)
     end
 
-    -- Clear leaked state
+    -- Clean state
     SetNuiFocusKeepInput(false)
     RenderScriptCams(false, false, 0, false, false)
     DestroyAllCams(true)
-
-    -- Unfreeze
     FreezeEntityPosition(ped, false)
     ClearPedTasksImmediately(ped)
 
-    -- GTA Online satellite zoom-in using native switch system
+    -- GTA Online satellite zoom-in
     DoScreenFadeIn(0)
     SwitchInPlayer(ped)
 
-    -- Wait for zoom-in to finish
     while GetPlayerSwitchState() ~= 12 do
         Wait(0)
     end
-
-    -- The switch system properly initializes the camera.
-    -- No manual camera resets needed.
 end)
 
---- Event: Character created, update list
 RegisterNetEvent('hydra:identity:characterCreated')
 AddEventHandler('hydra:identity:characterCreated', function(data)
     Hydra.Identity.SwitchScreen('selection', {
@@ -227,7 +262,6 @@ AddEventHandler('hydra:identity:characterCreated', function(data)
     })
 end)
 
---- Event: Character deleted, update list
 RegisterNetEvent('hydra:identity:characterDeleted')
 AddEventHandler('hydra:identity:characterDeleted', function(data)
     SendNUIMessage({
@@ -237,7 +271,6 @@ AddEventHandler('hydra:identity:characterDeleted', function(data)
     })
 end)
 
---- Event: Error from server
 RegisterNetEvent('hydra:identity:error')
 AddEventHandler('hydra:identity:error', function(msg)
     SendNUIMessage({
@@ -251,36 +284,32 @@ end)
 -- NUI Callbacks
 -- ==========================================
 
---- NUI: Select a character
 RegisterNUICallback('identity:selectCharacter', function(data, cb)
     if not isActive then cb({ ok = false }) return end
-
     selectedCharId = data.characterId
     local spawnLocation = data.spawnLocation
 
-    local camOk = pcall(function() exports['hydra_camera']:FadeOut(500) end)
-    if not camOk then DoScreenFadeOut(500) end
+    DoScreenFadeOut(500)
     Wait(600)
 
     TriggerServerEvent('hydra:identity:selectCharacter', selectedCharId, spawnLocation)
     cb({ ok = true })
 end)
 
---- NUI: Start character creation
 RegisterNUICallback('identity:startCreation', function(_, cb)
     if not isActive then cb({ ok = false }) return end
     Hydra.Identity.SwitchScreen('creation')
     cb({ ok = true })
 end)
 
---- NUI: Sex changed during creation (swap ped model)
 RegisterNUICallback('identity:changeSex', function(data, cb)
     if not isActive then cb({ ok = false }) return end
-    Hydra.Identity.SpawnPreviewPed(data.sex or 'male')
+    if appearanceReady then
+        Hydra.Identity.SpawnPreviewPed(data.sex or 'male')
+    end
     cb({ ok = true })
 end)
 
---- NUI: Submit character creation form, go to appearance
 RegisterNUICallback('identity:submitCreation', function(data, cb)
     if not isActive then cb({ ok = false }) return end
 
@@ -296,7 +325,6 @@ RegisterNUICallback('identity:submitCreation', function(data, cb)
     cb({ ok = true })
 end)
 
---- NUI: Appearance changed (live preview)
 RegisterNUICallback('identity:updateAppearance', function(data, cb)
     local ped = Hydra.Identity.GetPreviewPed()
     if ped then
@@ -310,37 +338,30 @@ RegisterNUICallback('identity:updateAppearance', function(data, cb)
     cb({ ok = true })
 end)
 
---- NUI: Finalize character (create on server with appearance)
 RegisterNUICallback('identity:finishCreation', function(data, cb)
     if not isActive then cb({ ok = false }) return end
-
     creationData.appearance = data.appearance or {}
     creationData.clothing = data.clothing or {}
-
     TriggerServerEvent('hydra:identity:createCharacter', creationData)
     cb({ ok = true })
 end)
 
---- NUI: Delete character
 RegisterNUICallback('identity:deleteCharacter', function(data, cb)
     if not isActive then cb({ ok = false }) return end
     TriggerServerEvent('hydra:identity:deleteCharacter', data.characterId)
     cb({ ok = true })
 end)
 
---- NUI: Go back to selection from creation/appearance
 RegisterNUICallback('identity:backToSelection', function(_, cb)
     if not isActive then cb({ ok = false }) return end
     Hydra.Identity.SwitchScreen('selection')
     cb({ ok = true })
 end)
 
---- NUI: Rotate preview ped
 RegisterNUICallback('identity:rotatePed', function(data, cb)
     local ped = Hydra.Identity.GetPreviewPed()
     if ped then
-        local heading = GetEntityHeading(ped) + (data.direction or 0)
-        SetEntityHeading(ped, heading % 360.0)
+        SetEntityHeading(ped, (GetEntityHeading(ped) + (data.direction or 0)) % 360.0)
     end
     cb({ ok = true })
 end)
@@ -349,25 +370,19 @@ end)
 -- LOGOUT
 -- ==========================================
 
---- Server tells us to go back to character selection
 RegisterNetEvent('hydra:identity:logout')
 AddEventHandler('hydra:identity:logout', function(data)
-    -- Hide HUD
     if Hydra.HUD and Hydra.HUD.SetVisible then
         Hydra.HUD.SetVisible(false)
     end
-
-    -- Reset characterLoaded flag in HUD (by sending a hide event)
     SendNUIMessage({ module = 'hud', action = 'setVisible', data = { visible = false } })
 
-    -- Fade out
     DoScreenFadeOut(500)
     Wait(600)
 
-    -- Reset camera
-    RenderScriptCams(false, false, 0, true, false)
+    RenderScriptCams(false, false, 0, false, false)
+    DestroyAllCams(true)
 
-    -- Show character selection
     Hydra.Identity.Show(data)
 end)
 

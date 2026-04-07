@@ -118,34 +118,26 @@
                 if (!els.street) cacheDom();
                 if (!compassBuilt) buildCompass();
 
-                // Update compass
+                // Compass heading (sent every frame)
                 if (data.heading !== undefined) {
                     updateCompass(data.heading);
                 }
-
-                // Update direction
-                if (els.direction && data.direction) {
+                if (data.direction !== undefined && els.direction) {
                     els.direction.textContent = data.direction;
                 }
 
-                // Update street
-                if (els.street) {
-                    els.street.textContent = data.street || '';
+                // Street/zone/time (sent less frequently)
+                if (data.street !== undefined && els.street) {
+                    els.street.textContent = data.street;
                 }
-
-                // Update crossing
-                if (els.crossing) {
-                    els.crossing.textContent = data.crossing || '';
+                if (data.crossing !== undefined && els.crossing) {
+                    els.crossing.textContent = data.crossing;
                 }
-
-                // Update zone
-                if (els.zone) {
-                    els.zone.textContent = data.zone || '';
+                if (data.zone !== undefined && els.zone) {
+                    els.zone.textContent = data.zone;
                 }
-
-                // Update time
-                if (els.time) {
-                    els.time.textContent = data.time || '';
+                if (data.time !== undefined && els.time) {
+                    els.time.textContent = data.time;
                 }
                 break;
 

@@ -67,38 +67,52 @@
         }
     }
 
-    /**
-     * Get speed color class
-     */
-    function getSpeedClass(speed) {
-        if (speed > 150) return 'speed-danger';
-        if (speed > 100) return 'speed-fast';
-        return 'speed-normal';
-    }
+    const MAX_SPEED = 200;  // max speed for full arc
+    const SPEED_ARC = 329.87;  // circumference * 0.75 (270 degrees)
+    const RPM_ARC = 272.44;
 
     /**
-     * Update speed with smooth animation
+     * Update circular speedometer
      */
     function updateSpeed(speed) {
-        if (!els.speed || speed === lastSpeed) return;
+        if (!els.speed) return;
 
         // Animate number
         const from = lastSpeed >= 0 ? lastSpeed : speed;
         const duration = 120;
         const start = performance.now();
-
         function tick(now) {
             const elapsed = now - start;
             const t = Math.min(elapsed / duration, 1);
-            const val = Math.round(from + (speed - from) * t);
-            els.speed.textContent = val;
+            els.speed.textContent = Math.round(from + (speed - from) * t);
             if (t < 1) requestAnimationFrame(tick);
         }
         requestAnimationFrame(tick);
 
-        // Color
-        els.speed.className = 'speed-value ' + getSpeedClass(speed);
+        // Update speed arc
+        const speedArc = document.getElementById('speedo-arc');
+        if (speedArc) {
+            const pct = Math.min(speed / MAX_SPEED, 1);
+            speedArc.style.strokeDashoffset = SPEED_ARC * (1 - pct);
+            // Color based on speed
+            speedArc.classList.remove('speed-fast', 'speed-danger');
+            if (speed > 150) speedArc.classList.add('speed-danger');
+            else if (speed > 100) speedArc.classList.add('speed-fast');
+        }
+
         lastSpeed = speed;
+    }
+
+    /**
+     * Update RPM arc
+     */
+    function updateRpmArc(rpm) {
+        const rpmArc = document.getElementById('speedo-rpm-arc');
+        if (rpmArc) {
+            const pct = Math.min(rpm / 100, 1);
+            rpmArc.style.strokeDashoffset = RPM_ARC * (1 - pct);
+            rpmArc.classList.toggle('high-rpm', rpm > 80);
+        }
     }
 
     // ---- NUI Message Handler ----
@@ -130,25 +144,20 @@
             case 'vehicleUpdate':
                 if (!els.vehicle || els.vehicle.style.display === 'none') return;
 
-                // Speed
+                // Speed (number + arc)
                 updateSpeed(data.speed || 0);
                 if (els.speedUnit) els.speedUnit.textContent = data.speedUnit || 'MPH';
 
-                // RPM
-                if (els.rpmFill && data.rpm !== undefined) {
-                    els.rpmFill.style.width = data.rpm + '%';
-                    if (data.rpm > 80) {
-                        els.rpmFill.classList.add('high-rpm');
-                    } else {
-                        els.rpmFill.classList.remove('high-rpm');
-                    }
+                // RPM (arc)
+                if (data.rpm !== undefined) {
+                    updateRpmArc(data.rpm);
                 }
 
-                // Gear
+                // Gear (center display)
                 if (els.gearValue && data.gear !== undefined && data.gear !== null) {
                     const gearDisplay = data.gear === 0 ? 'R' : data.gear.toString();
                     els.gearValue.textContent = gearDisplay;
-                    els.gearValue.className = 'gear-value' + (data.gear === 0 ? ' gear-reverse' : '');
+                    els.gearValue.className = 'gear-display' + (data.gear === 0 ? ' gear-reverse' : '');
                 }
 
                 // Fuel

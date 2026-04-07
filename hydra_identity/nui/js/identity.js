@@ -98,7 +98,18 @@ const HydraIdentity = (() => {
                 } else if (data.screen === 'appearance') {
                     HydraAppearance.init(data.extra);
                     showScreen('appearance');
+                    // If loading flag set, show a loading overlay on the appearance screen
+                    if (data.loading) {
+                        const panel = document.querySelector('.appearance-panel');
+                        if (panel) panel.classList.add('loading');
+                    }
                 }
+                break;
+
+            case 'appearanceReady':
+                // 3D preview is loaded — remove loading state
+                const panel = document.querySelector('.appearance-panel');
+                if (panel) panel.classList.remove('loading');
                 break;
 
             case 'updateCharacters':

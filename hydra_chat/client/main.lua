@@ -198,8 +198,37 @@ end)
 -- Disable default FiveM chat
 CreateThread(function()
     Wait(1000)
-    -- Override the default chat resource behavior
     TriggerEvent('chat:addTemplate', 'hydra_override', '<div></div>')
+end)
+
+-- Toggle chat visibility
+local chatVisible = true
+
+function Hydra.Chat.ToggleVisibility()
+    chatVisible = not chatVisible
+    SendNUIMessage({
+        module = 'chat',
+        action = 'toggleVisibility',
+        data = { visible = chatVisible },
+    })
+end
+
+-- Register toggle keybind (H key)
+CreateThread(function()
+    Wait(500)
+    local ok = pcall(function()
+        exports['hydra_keybinds']:Register('chat_toggle', {
+            key = 'H',
+            description = 'Toggle Chat',
+            category = 'chat',
+            module = 'hydra_chat',
+            onPress = function() Hydra.Chat.ToggleVisibility() end,
+        })
+    end)
+    if not ok then
+        RegisterCommand('togglechat', function() Hydra.Chat.ToggleVisibility() end, false)
+        RegisterKeyMapping('togglechat', 'Toggle Chat', 'keyboard', 'H')
+    end
 end)
 
 -- =============================================

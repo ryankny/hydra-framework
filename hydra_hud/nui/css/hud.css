@@ -39,10 +39,11 @@ html {
 }
 
 /* ---- Player HUD Container ---- */
+/* Positioned above the minimap, not overlapping it */
 .hud-player {
     position: fixed;
-    bottom: 24px;
-    left: 200px;
+    bottom: 220px;
+    left: 20px;
     display: flex;
     flex-direction: column;
     gap: 8px;

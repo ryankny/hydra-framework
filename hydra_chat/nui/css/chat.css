@@ -28,15 +28,19 @@ html {
 
 #chat-root {
     position: fixed;
-    bottom: 0;
+    top: 60px;
     left: 0;
-    width: 550px;
-    max-height: 45vh;
+    width: 480px;
+    max-height: 40vh;
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
     padding: 12px;
     pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+#chat-root.chat-hidden {
+    opacity: 0;
 }
 
 #chat-container {

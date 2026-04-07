@@ -1,5 +1,6 @@
 /* ============================================
    Hydra HUD - Vehicle HUD Styles
+   Circular speedometer with RPM ring
    ============================================ */
 
 /* ---- Vehicle HUD Container ---- */
@@ -9,17 +10,10 @@
     right: 24px;
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    align-items: center;
     gap: 8px;
-    padding: 16px 20px;
-    background: rgba(15, 15, 20, 0.92);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 16px;
-    min-width: 220px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
-/* Enter/exit animations */
 .hud-vehicle.entering {
     animation: veh-enter 400ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
@@ -29,130 +23,134 @@
 }
 
 @keyframes veh-enter {
-    from {
-        opacity: 0;
-        transform: translateY(30px) scale(0.9);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
+    from { opacity: 0; transform: translateY(30px) scale(0.9); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 @keyframes veh-exit {
-    from {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-    to {
-        opacity: 0;
-        transform: translateY(30px) scale(0.9);
-    }
+    from { opacity: 1; transform: translateY(0) scale(1); }
+    to { opacity: 0; transform: translateY(30px) scale(0.9); }
 }
 
-/* ---- Speedometer ---- */
-.vehicle-speed {
+/* ---- Circular Speedometer ---- */
+.speedo-container {
+    position: relative;
+    width: 160px;
+    height: 160px;
+}
+
+.speedo-ring {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-225deg);
+}
+
+/* SVG arcs — use 270-degree sweep (3/4 circle) */
+.speedo-bg,
+.speedo-fill,
+.speedo-rpm-bg,
+.speedo-rpm-fill {
+    fill: none;
+    stroke-linecap: round;
+}
+
+/* Speed arc (outer) */
+.speedo-bg {
+    stroke: rgba(255, 255, 255, 0.06);
+    stroke-width: 6;
+    stroke-dasharray: 329.87;  /* 2 * PI * 70 * 0.75 (270 degrees) */
+    stroke-dashoffset: 0;
+}
+
+.speedo-fill {
+    stroke: #6C5CE7;
+    stroke-width: 6;
+    stroke-dasharray: 329.87;
+    stroke-dashoffset: 329.87;  /* starts empty */
+    transition: stroke-dashoffset 150ms ease, stroke 300ms ease;
+}
+
+.speedo-fill.speed-fast {
+    stroke: #FDCB6E;
+}
+
+.speedo-fill.speed-danger {
+    stroke: #FF7675;
+}
+
+/* RPM arc (inner) */
+.speedo-rpm-bg {
+    stroke: rgba(255, 255, 255, 0.04);
+    stroke-width: 3;
+    stroke-dasharray: 272.44;  /* 2 * PI * 58 * 0.75 */
+    stroke-dashoffset: 0;
+}
+
+.speedo-rpm-fill {
+    stroke: #00CEC9;
+    stroke-width: 3;
+    stroke-dasharray: 272.44;
+    stroke-dashoffset: 272.44;
+    transition: stroke-dashoffset 80ms linear, stroke 300ms ease;
+}
+
+.speedo-rpm-fill.high-rpm {
+    stroke: #FF7675;
+}
+
+/* Center text overlay */
+.speedo-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
     display: flex;
-    align-items: baseline;
-    gap: 6px;
-    margin-bottom: 4px;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
 }
 
-.speed-value {
-    font-size: 2.5rem;
+.speedo-center .speed-value {
+    font-size: 2rem;
     font-weight: 800;
-    color: var(--hydra-text-primary);
+    color: #FFFFFF;
     line-height: 1;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.02em;
-    transition: color 300ms ease;
 }
 
-.speed-unit {
-    font-size: 0.625rem;
+.speedo-center .speed-unit {
+    font-size: 0.5rem;
     font-weight: 600;
-    letter-spacing: 0.12em;
-    color: var(--hydra-text-muted);
+    letter-spacing: 0.15em;
+    color: #6C6C80;
     text-transform: uppercase;
+    margin-top: 2px;
 }
 
-/* Speed color based on velocity */
-.speed-value.speed-normal { color: var(--hydra-text-primary); }
-.speed-value.speed-fast { color: var(--hydra-warning); }
-.speed-value.speed-danger { color: var(--hydra-danger); }
-
-/* ---- RPM Bar ---- */
-.vehicle-rpm {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.rpm-track {
-    flex: 1;
-    height: 3px;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 3px;
-    overflow: hidden;
-}
-
-.rpm-fill {
-    height: 100%;
-    border-radius: 3px;
-    background: linear-gradient(90deg, var(--hydra-primary), var(--hydra-secondary));
-    transition: width 80ms linear;
-}
-
-.rpm-fill.high-rpm {
-    background: linear-gradient(90deg, var(--hydra-warning), var(--hydra-danger));
-}
-
-.rpm-label {
-    font-size: 0.5625rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    color: var(--hydra-text-muted);
-}
-
-/* ---- Gear Indicator ---- */
-.vehicle-gear {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: -2px;
-}
-
-.gear-label {
-    font-size: 0.5625rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    color: var(--hydra-text-muted);
-}
-
-.gear-value {
-    font-size: 1.25rem;
+.speedo-center .gear-display {
+    font-size: 1rem;
     font-weight: 800;
-    color: var(--hydra-text-primary);
+    color: #A0A0B8;
+    margin-top: 4px;
     font-variant-numeric: tabular-nums;
-    min-width: 18px;
-    text-align: center;
-    transition: color 200ms ease;
 }
 
-.gear-value.gear-reverse {
-    color: var(--hydra-danger);
+.speedo-center .gear-display.gear-reverse {
+    color: #FF7675;
 }
 
 /* ---- Vehicle Stats (Fuel, Engine) ---- */
 .vehicle-stats {
-    width: 100%;
+    width: 160px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    margin-top: 4px;
-    padding-top: 8px;
-    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    gap: 5px;
+    padding: 8px 12px;
+    background: rgba(15, 15, 20, 0.9);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .veh-stat {
@@ -174,8 +172,8 @@
     height: 12px;
 }
 
-.fuel-icon { color: var(--hydra-warning); }
-.engine-icon { color: var(--hydra-info); }
+.fuel-icon { color: #FDCB6E; }
+.engine-icon { color: #74B9FF; }
 
 .veh-stat-bar {
     flex: 1;
@@ -198,9 +196,9 @@
 .engine-fill.damaged { background: linear-gradient(90deg, #e74c3c, #FF7675); }
 
 .veh-stat-value {
-    font-size: 0.625rem;
+    font-size: 0.5625rem;
     font-weight: 600;
-    color: var(--hydra-text-muted);
+    color: #6C6C80;
     min-width: 24px;
     text-align: right;
     font-variant-numeric: tabular-nums;
@@ -210,9 +208,7 @@
 .vehicle-indicators {
     display: flex;
     gap: 10px;
-    margin-top: 6px;
-    padding-top: 8px;
-    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    margin-top: 2px;
 }
 
 .indicator {
@@ -221,7 +217,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--hydra-text-muted);
+    color: #6C6C80;
     opacity: 0.3;
     transition: opacity 300ms ease, color 300ms ease;
 }
@@ -231,25 +227,28 @@
     height: 16px;
 }
 
-.indicator.active {
-    opacity: 1;
-}
+.indicator.active { opacity: 1; }
+#ind-seatbelt.active { color: #00B894; }
+#ind-seatbelt.inactive { color: #FF7675; opacity: 1; animation: vital-pulse 1.5s infinite; }
+#ind-lock.active { color: #FDCB6E; }
+#ind-lights.active { color: #74B9FF; }
+#ind-engine.active { color: #00B894; }
+#ind-engine.damaged { color: #FF7675; opacity: 1; }
 
-#ind-seatbelt.active { color: var(--hydra-success); }
-#ind-seatbelt.inactive { color: var(--hydra-danger); opacity: 1; animation: vital-pulse 1.5s infinite; }
-#ind-lock.active { color: var(--hydra-warning); }
-#ind-lights.active { color: var(--hydra-info); }
-#ind-engine.active { color: var(--hydra-success); }
-#ind-engine.damaged { color: var(--hydra-danger); opacity: 1; }
+@keyframes vital-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
 
 /* ---- Aircraft Overlay ---- */
 .vehicle-aircraft {
-    width: 100%;
+    width: 160px;
     display: flex;
     gap: 16px;
-    padding-top: 8px;
-    border-top: 1px solid rgba(255, 255, 255, 0.04);
-    margin-top: 4px;
+    padding: 6px 12px;
+    background: rgba(15, 15, 20, 0.9);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .aircraft-stat {
@@ -259,31 +258,28 @@
 }
 
 .aircraft-label {
-    font-size: 0.5625rem;
+    font-size: 0.5rem;
     font-weight: 600;
     letter-spacing: 0.1em;
-    color: var(--hydra-text-muted);
+    color: #6C6C80;
 }
 
 .aircraft-value {
     font-size: 0.875rem;
     font-weight: 700;
-    color: var(--hydra-text-primary);
+    color: #FFFFFF;
     font-variant-numeric: tabular-nums;
 }
 
 .aircraft-unit {
-    font-size: 0.5625rem;
-    color: var(--hydra-text-muted);
+    font-size: 0.5rem;
+    color: #6C6C80;
 }
 
-/* ---- Boat Overlay ---- */
 .vehicle-boat {
     display: flex;
     gap: 10px;
     margin-top: 4px;
-    padding-top: 8px;
-    border-top: 1px solid rgba(255, 255, 255, 0.04);
 }
 
-#ind-anchor.active { color: var(--hydra-warning); }
+#ind-anchor.active { color: #FDCB6E; }

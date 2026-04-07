@@ -89,7 +89,7 @@
     height: 100%;
     position: relative;
     white-space: nowrap;
-    transition: transform 100ms linear;
+    transition: transform 50ms linear;
 }
 
 .compass-tick {

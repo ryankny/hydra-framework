@@ -20,7 +20,7 @@ HydraPhysicsConfig = {
     -- handling.meta values. 1.0 = stock, <1.0 = reduced, >1.0 = enhanced.
 
     handling = {
-        enabled = true,
+        enabled = false,  -- Disabled by default — enable when tuned for your server
 
         -- Apply handling modifications only when player is driver
         driver_only = true,
@@ -322,7 +322,7 @@ HydraPhysicsConfig = {
     -- braking, and cornering by adjusting grip in real-time.
 
     weight_transfer = {
-        enabled = true,
+        enabled = false,
 
         -- How aggressively weight shifts affect grip (0.0 - 1.0)
         -- Higher = more dramatic weight transfer effects
@@ -351,7 +351,7 @@ HydraPhysicsConfig = {
     -- GTA material hashes mapped to grip multipliers.
 
     surface_traction = {
-        enabled = true,
+        enabled = false,
 
         -- Material grip multipliers (1.0 = normal road)
         -- Applied on top of vehicle traction values

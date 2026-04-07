@@ -258,6 +258,12 @@
             case 'addSuggestion':
                 if (data && data.name) suggestions[data.name] = data;
                 break;
+            case 'toggleVisibility':
+                const root = document.getElementById('chat-root');
+                if (root) {
+                    root.classList.toggle('chat-hidden', !data.visible);
+                }
+                break;
         }
     });
 })();

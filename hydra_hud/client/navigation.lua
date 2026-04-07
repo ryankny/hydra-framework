@@ -67,43 +67,61 @@ local function hasChanged(newData, oldData)
     return false
 end
 
---- Navigation update loop
+--- Compass heading update (fast — runs every frame for smooth compass)
 CreateThread(function()
     while not Hydra.IsReady() do Wait(200) end
 
     local navConfig = HydraHUDConfig.navigation or {}
     if not navConfig.enabled then return end
 
+    local lastHeading = -1
+
     while true do
         if Hydra.HUD.IsVisible() then
-            local ped = PlayerPedId()
-            local coords = GetEntityCoords(ped)
-            local heading = GetEntityHeading(ped)
+            -- Use camera rotation for compass (matches what player sees)
+            local camRot = GetGameplayCamRot(2)
+            local heading = (360.0 - camRot.z) % 360.0
+            local rounded = math.floor(heading)
 
-            -- If in vehicle, use vehicle heading
-            if IsPedInAnyVehicle(ped, false) then
-                local vehicle = GetVehiclePedIsIn(ped, false)
-                heading = GetEntityHeading(vehicle)
-            end
-
-            local street, crossing = getStreetNames(coords)
-            local zone = getZoneName(coords)
-
-            local data = {
-                heading = math.floor(heading),
-                direction = getDirection(heading),
-                street = street,
-                crossing = crossing,
-                zone = zone,
-                time = getGameTime(),
-            }
-
-            if hasChanged(data, lastNavData) then
-                Hydra.HUD.Send('navUpdate', data)
-                lastNavData = data
+            if rounded ~= lastHeading then
+                Hydra.HUD.Send('navUpdate', {
+                    heading = rounded,
+                    direction = getDirection(heading),
+                })
+                lastHeading = rounded
             end
         end
+        Wait(0) -- Every frame for smooth compass
+    end
+end)
 
-        Wait(200) -- Navigation doesn't need super fast updates
+--- Street/zone/time update (slow — doesn't change often)
+CreateThread(function()
+    while not Hydra.IsReady() do Wait(200) end
+
+    local navConfig = HydraHUDConfig.navigation or {}
+    if not navConfig.enabled then return end
+
+    local lastStreet, lastZone = '', ''
+
+    while true do
+        if Hydra.HUD.IsVisible() then
+            local coords = GetEntityCoords(PlayerPedId())
+            local street, crossing = getStreetNames(coords)
+            local zone = getZoneName(coords)
+            local time = getGameTime()
+
+            if street ~= lastStreet or zone ~= lastZone then
+                Hydra.HUD.Send('navUpdate', {
+                    street = street,
+                    crossing = crossing,
+                    zone = zone,
+                    time = time,
+                })
+                lastStreet = street
+                lastZone = zone
+            end
+        end
+        Wait(1000) -- Street names don't change fast
     end
 end)

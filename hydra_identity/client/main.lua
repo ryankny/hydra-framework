@@ -69,6 +69,10 @@ function Hydra.Identity.Hide()
 
     SetNuiFocus(false, false)
 
+    -- Clean up streaming
+    ClearFocus()
+    NewLoadSceneStop()
+
     -- Destroy preview ped and camera
     Hydra.Identity.DestroyPreviewPed()
     Hydra.Identity.DestroyCamera()
@@ -92,11 +96,21 @@ function Hydra.Identity.SwitchScreen(screen, data)
 
     if screen == 'creation' then
         creationData = {}
-        -- Load collision at preview location, set up camera and preview ped
         local cfg = HydraIdentityConfig.camera.creation
-        RequestCollisionAtCoord(cfg.ped_coords.x, cfg.ped_coords.y, cfg.ped_coords.z)
-        Wait(500)
-        -- Player ped stays hidden far away — only the preview ped shows
+        local px, py, pz = cfg.ped_coords.x, cfg.ped_coords.y, cfg.ped_coords.z
+
+        -- Stream in the area properly so textures load
+        SetFocusPosAndVel(px, py, pz, 0.0, 0.0, 0.0)
+        RequestCollisionAtCoord(px, py, pz)
+        NewLoadSceneStart(px, py, pz, px, py, pz, 50.0, 0)
+
+        -- Wait for the area to fully stream in
+        local streamTimeout = GetGameTimer() + 10000
+        while not NewLoadSceneHasLoaded() and GetGameTimer() < streamTimeout do
+            Wait(100)
+        end
+
+        -- Spawn the preview ped and set up camera
         Hydra.Identity.SpawnPreviewPed('male')
         Hydra.Identity.SetupCamera('creation')
         DoScreenFadeIn(500)
@@ -105,6 +119,8 @@ function Hydra.Identity.SwitchScreen(screen, data)
     elseif screen == 'selection' then
         Hydra.Identity.DestroyPreviewPed()
         Hydra.Identity.DestroyCamera()
+        ClearFocus()
+        NewLoadSceneStop()
         DoScreenFadeOut(300)
     end
 

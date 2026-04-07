@@ -119,19 +119,18 @@
             case 'init':
                 config = data.config || {};
                 cacheDom();
-                // Apply initial visibility (starts hidden until character loads)
+                // Keep body hidden until setVisible(true) — character must be loaded first
                 hudVisible = data.visible !== undefined ? data.visible : false;
-                if (els.player) els.player.classList.toggle('hidden', !hudVisible);
-                const navInit = document.getElementById('hud-navigation');
-                if (navInit) navInit.classList.toggle('hidden', !hudVisible);
+                document.body.style.display = hudVisible ? 'block' : 'none';
                 break;
 
             case 'setVisible':
                 hudVisible = data.visible;
+                // Show/hide the entire HUD body
+                document.body.style.display = hudVisible ? 'block' : 'none';
                 if (els.player) {
                     els.player.classList.toggle('hidden', !hudVisible);
                 }
-                // Also toggle navigation
                 const nav = document.getElementById('hud-navigation');
                 if (nav) nav.classList.toggle('hidden', !hudVisible);
                 break;

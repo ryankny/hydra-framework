@@ -167,17 +167,28 @@ AddEventHandler('hydra:identity:characterLoaded', function(data)
     local model = GetHashKey(modelName)
     RequestModel(model)
     while not HasModelLoaded(model) do Wait(10) end
+
+    -- Use SwitchOutPlayer BEFORE changing model — this is what GTA Online does.
+    -- It handles the satellite camera and properly resets the camera system.
+    SwitchOutPlayer(PlayerPedId(), 0, 1)
+
+    -- Wait for switch to complete (player is now in "sky" view)
+    while GetPlayerSwitchState() ~= 5 do
+        Wait(0)
+    end
+
+    -- NOW change the model while in switch state — camera is detached
     SetPlayerModel(PlayerId(), model)
     SetModelAsNoLongerNeeded(model)
-
-    -- Get fresh ped reference after model change
     local ped = PlayerPedId()
 
-    -- Move to spawn position BEFORE applying appearance
+    -- Position the ped at spawn
     SetEntityCoordsNoOffset(ped, pos.x, pos.y, pos.z, false, false, false)
     SetEntityHeading(ped, pos.heading or 0.0)
     FreezeEntityPosition(ped, true)
     SetEntityVisible(ped, true, false)
+    SetEntityAlpha(ped, 255, false)
+    ResetEntityAlpha(ped)
 
     -- Apply appearance
     if data.appearance and next(data.appearance) then
@@ -191,132 +202,30 @@ AddEventHandler('hydra:identity:characterLoaded', function(data)
         SetPedDefaultComponentVariation(ped)
     end
 
-    -- Wait for world to load
+    -- Load the world at spawn location
     RequestCollisionAtCoord(pos.x, pos.y, pos.z)
     local timeout = GetGameTimer() + 10000
     while not HasCollisionLoadedAroundEntity(ped) and GetGameTimer() < timeout do
         Wait(100)
     end
-    Wait(500)
 
     -- Clear any leaked NUI state
     SetNuiFocusKeepInput(false)
     RenderScriptCams(false, false, 0, false, false)
     DestroyAllCams(true)
 
-    -- Restore ped visibility
-    SetEntityAlpha(ped, 255, false)
-    ResetEntityAlpha(ped)
-
-    -- Keep ped frozen during the flydown sequence
-    FreezeEntityPosition(ped, true)
-
-    -- ============================================================
-    -- GTA Online-style satellite zoom-in sequence
-    -- Camera starts high in the sky looking down, sweeps down to the player
-    -- ============================================================
-
-    local spawnX, spawnY, spawnZ = pos.x, pos.y, pos.z
-    local spawnHeading = pos.heading or 0.0
-
-    -- Create the sky camera (high altitude, looking straight down)
-    local skyCam = CreateCam('DEFAULT_SCRIPTED_CAMERA', true)
-    SetCamCoord(skyCam, spawnX, spawnY, spawnZ + 800.0)
-    PointCamAtCoord(skyCam, spawnX, spawnY, spawnZ)
-    SetCamFov(skyCam, 60.0)
-    SetCamActive(skyCam, true)
-    RenderScriptCams(true, false, 0, false, false)
-
-    -- Fade in showing the sky view
-    DoScreenFadeIn(800)
-    Wait(600)
-
-    -- Animate the camera swooping down over ~4 seconds
-    -- Using multiple waypoints for a smooth arc
-    local duration = 4000
-    local startTime = GetGameTimer()
-
-    -- Block player input during the sequence
-    CreateThread(function()
-        local seqEnd = startTime + duration + 2000
-        while GetGameTimer() < seqEnd do
-            DisableAllControlActions(0)
-            Wait(0)
-        end
-    end)
-
-    -- Behind-player position
-    local behindRad = math.rad(spawnHeading)
-    local behindX = spawnX - math.sin(behindRad) * 4.0
-    local behindY = spawnY - math.cos(behindRad) * 4.0
-    local behindZ = spawnZ + 1.5
-
-    while true do
-        local elapsed = GetGameTimer() - startTime
-        if elapsed >= duration then break end
-
-        local t = elapsed / duration
-
-        -- Smooth easing (ease-in-out)
-        local ease
-        if t < 0.5 then
-            ease = 2 * t * t
-        else
-            ease = 1 - (-2 * t + 2) ^ 2 / 2
-        end
-
-        -- Interpolate position: sky → behind player in a smooth arc
-        local camX = spawnX + (behindX - spawnX) * ease
-        local camY = spawnY + (behindY - spawnY) * ease
-
-        -- Height: starts at 800, swoops down with a curve
-        -- Use a power curve so it stays high longer then drops fast
-        local heightT = ease ^ 0.6
-        local camZ = spawnZ + 800.0 * (1.0 - heightT) + behindZ * heightT
-
-        -- Look target: starts at ground below, shifts to player upper body
-        local lookZ = spawnZ + (0.8 * ease)
-
-        -- FOV narrows as we get closer
-        local fov = 60.0 - (20.0 * ease)
-
-        SetCamCoord(skyCam, camX, camY, camZ)
-        PointCamAtCoord(skyCam, spawnX, spawnY, lookZ)
-        SetCamFov(skyCam, fov)
-
-        Wait(0)
-    end
-
-    -- Final position: behind player
-    SetCamCoord(skyCam, behindX, behindY, behindZ)
-    PointCamAtCoord(skyCam, spawnX, spawnY, spawnZ + 0.8)
-    SetCamFov(skyCam, 40.0)
-    Wait(500)
-
     -- Unfreeze ped
     FreezeEntityPosition(ped, false)
     ClearPedTasksImmediately(ped)
 
-    -- Smoothly hand off to gameplay camera
-    SetCamActive(skyCam, false)
-    RenderScriptCams(false, true, 1500, false, false)
+    -- Fade in and trigger the GTA Online-style zoom-in from satellite
+    DoScreenFadeIn(0)
+    SwitchInPlayer(ped)
 
-    -- Block mouse input during the transition so camera doesn't snap
-    CreateThread(function()
-        local transEnd = GetGameTimer() + 2000
-        while GetGameTimer() < transEnd do
-            DisableControlAction(0, 1, true)
-            DisableControlAction(0, 2, true)
-            SetGameplayCamRelativeHeading(0.0)
-            SetGameplayCamRelativePitch(0.0, 1.0)
-            Wait(0)
-        end
-        SetGameplayCamRelativeHeading(0.0)
-        SetGameplayCamRelativePitch(0.0, 1.0)
-    end)
-
-    Wait(2000)
-    DestroyCam(skyCam, true)
+    -- Wait for the switch-in animation to complete
+    while GetPlayerSwitchState() ~= 12 do
+        Wait(0)
+    end
 end)
 
 --- Event: Character created, update list
